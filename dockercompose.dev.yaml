@@ -17,11 +17,29 @@ services:
       - "8081:8081"
     environment:
       - REDIS_HOSTS=local:redis:6379
+  data_extraction:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app_data_extraction
+    container_name: data_extraction_container
+    volumes:
+      - ./celery_app:/app/celery_app
+      - ./data_extraction:/app/data_extraction
+      - output:/app/data_extraction/scraping_output
+      - logs:/app/data_extraction/Websites/log
+    depends_on:
+      - redis
+    user: celery_user
+    command: ["python", "/app/data_extraction/web_scrape.py"]
+    environment:
+    - PYTHONPATH=/app
+    - CHROME_BIN=/app/data_extraction/Websites/chrome-linux64/chrome
   celery:
     build:
       context: .
-      dockerfile: Dockerfile.celery
-    image: app_image
+      dockerfile: Dockerfile
+    image: app_worker
     container_name: celery_container
     command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
     depends_on:
@@ -29,13 +47,17 @@ services:
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
+      - ./data_extraction:/app/data_extraction
       - output:/app/data_extraction/scraping_output
       - logs:/app/data_extraction/Websites/log
-      #- chrome_cache:/app/data_extraction/Websites/chromedriver-linux64
+    environment:
+    - PYTHONPATH=/app
+    - CHROME_BIN=/app/data_extraction/Websites/chrome-linux64/chrome
+
 
   flower:
 
-    image: app_image
+    image: app_worker
     container_name: flower_container
     ports:
       - "5555:5555"
@@ -50,4 +72,3 @@ volumes:
   redis_data:
   logs:
   output:
-  #chrome_cache:
