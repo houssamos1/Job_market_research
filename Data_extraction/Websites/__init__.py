@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-import tempfile
+import uuid
 
 import undetected_chromedriver as uc
 from jsonschema import ValidationError, validate
@@ -10,11 +10,14 @@ from selenium.webdriver.chrome.options import Options
 
 def init_driver():
     # Creation et configuration du Driver, pour pointer sur le driver changez le chemin executable_path
+
+    # executable_path = os.path.join(current_dir, "chromedriver-linux64/chromedriver")
     current_path = os.path.abspath(__file__)
     current_dir = os.path.dirname(current_path)
-    executable_path = os.path.join(current_dir, "chromedriver-linux64/chromedriver")
     chrome_path = os.path.join(current_dir, "chrome-linux64/chrome")
-    # executable_path=os.path.join(current_dir, "chromedriver") #PS: for windows
+    executable_path = os.path.join(
+        current_dir, "chromedriver-linux64/chromechromedriver"
+    )  # PS: for windows
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # exécute Chrome sans interface
     chrome_options.add_argument("--no-sandbox")  # requis pour Docker
@@ -25,12 +28,14 @@ def init_driver():
     chrome_options.add_argument("--remote-debugging-port=9222")
     # chrome_options.add_argument("--start-maximized")
 
-    temp_dir = tempfile.mkdtemp(prefix="profile_")
+    # temp_dir = tempfile.mkdtemp(prefix="profile_")
+    temp_dir = f"/tmp/profile_{uuid.uuid4()}"
     driver = uc.Chrome(
-        driver_executable_path=executable_path,
         browser_executable_path=chrome_path,
+        driver_executable_path=executable_path,
         options=chrome_options,
         user_data_dir=temp_dir,
+        user_multi_procs=True,
     )
 
     driver.implicitly_wait(
@@ -216,7 +221,7 @@ def setup_logger(filename="app.log", level=logging.INFO):
         console_handler.setFormatter(formatter)
         # Add the handlers to the logger
         logger.addHandler(file_handler)
-        # logger.addHandler(console_handler) # Adds logging to console (stdout)
+        logger.addHandler(console_handler)  # Adds logging to console (stdout)
         logger.setLevel(level)
 
     return logger
