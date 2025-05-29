@@ -207,12 +207,16 @@ def main(logger=setup_logger("Rekrute.log")):
     """Cette fonction permet de parcourir le site rekrute et d'en extraire les offres d'emploi.
     L'utilisation par defaut recherche des offres liées au domaine de la Data.
     """
-    start_time = time.time()
+    try:
+        driver = init_driver()
+    except Exception as e:
+        logger.exception(f"Couldn't start the driver {e}")
 
+    start_time = time.time()
     logger.info("Début de l'extraction des offres d'emploi sur Rekrute")
     try:
         # --- Initialisation du driver Chrome ---
-        driver = init_driver()
+
         data = []  # Liste qui contiendra toutes les offres
         access_rekrute(driver)
         logger.info("Accès à la page de recherche réussi.")

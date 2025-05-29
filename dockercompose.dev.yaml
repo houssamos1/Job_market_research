@@ -31,6 +31,7 @@ services:
       - ./celery_app:/app/celery_app
       - output:/app/data_extraction/scraping_output
       - logs:/app/data_extraction/Websites/log
+      #- chrome_cache:/app/data_extraction/Websites/chromedriver-linux64
 
   flower:
 
@@ -45,23 +46,8 @@ services:
     depends_on:
       - redis
       - celery
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    depends_on:
-      - flower
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-    - 3000:3000
-    depends_on:
-      - prometheus
 volumes:
   redis_data:
   logs:
   output:
+  #chrome_cache:
