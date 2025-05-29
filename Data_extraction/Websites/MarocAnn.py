@@ -149,7 +149,11 @@ def change_page(driver, base_url, page_num):
 
 
 def main(logger=setup_logger("maroc_ann.log")):
-    driver = init_driver()
+    try:
+        driver = init_driver()
+    except Exception as e:
+        logger.exception(f"Couldn't start the driver {e}")
+
     old_data = load_json("offres_marocannonces.json")
     all_offers, new_data = [], []
 

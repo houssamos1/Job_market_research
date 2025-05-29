@@ -43,7 +43,10 @@ def get_number_pages(driver: webdriver.Chrome):
 
 def main(logger=setup_logger("emploi.log")):
     # Initialisation du driver
-    driver = init_driver()
+    try:
+        driver = init_driver()
+    except Exception as e:
+        logger.exception(f"Couldn't start the driver {e}")
 
     try:
         access_emploi(driver)
