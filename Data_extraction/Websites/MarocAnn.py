@@ -138,11 +138,14 @@ def change_page(driver, base_url, page_num):
     """Navigue vers la page indiquée."""
     try:
         driver.get(base_url.format(page_num))
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.holder"))
         )
         logger.info(f"Page {page_num} chargée.")
         return True
+    except TimeoutException:
+        logger.info("Plus de page à parcourir")
+        False
     except Exception as e:
         logger.exception(f"Erreur chargement page {page_num}: {e}")
         return False
@@ -193,10 +196,12 @@ def main(logger=setup_logger("maroc_ann.log")):
                 logger.exception(f"Offre invalide : {url} - {e}")
 
     finally:
-        driver.quit()
-        logger.info(f"{len(new_data)} nouvelles offres collectées.")
+        if driver:
+            driver.quit()
         save_json(new_data, "offres_marocannonces.json")
-        logger.info("Scraping terminé.")
+        logger.info(
+            f"Scraping terminé avec {len(new_data)} nouvelles offres collectées."
+        )
 
     return new_data
 

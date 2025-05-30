@@ -17,24 +17,7 @@ services:
       - "8081:8081"
     environment:
       - REDIS_HOSTS=local:redis:6379
-  data_extraction:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: app_data_extraction
-    container_name: data_extraction_container
-    volumes:
-      - ./celery_app:/app/celery_app
-      - ./data_extraction:/app/data_extraction
-      - output:/app/data_extraction/scraping_output
-      - logs:/app/data_extraction/Websites/log
-    depends_on:
-      - redis
-    user: celery_user
-    command: ["python", "/app/data_extraction/web_scrape.py"]
-    environment:
-    - PYTHONPATH=/app
-    - CHROME_BIN=/app/data_extraction/Websites/chrome-linux64/chrome
+
   celery:
     build:
       context: .
@@ -47,12 +30,15 @@ services:
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
-      - ./data_extraction:/app/data_extraction
+      - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/app/data_extraction/Websites/log
+
     environment:
     - PYTHONPATH=/app
-    - CHROME_BIN=/app/data_extraction/Websites/chrome-linux64/chrome
+    - CHROME_BIN=/opt/chrome/chrome
+    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+
 
 
   flower:
@@ -65,9 +51,34 @@ services:
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
+      - output:/app/data_extraction/scraping_output
+      - logs:/app/data_extraction/Websites/log
     depends_on:
       - redis
       - celery
+  data_extraction:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app_worker
+    container_name: data_extraction_container
+    volumes:
+      - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
+      - output:/app/data_extraction/scraping_output
+      - logs:/app/data_extraction/Websites/log
+
+    depends_on:
+      - redis
+      - celery
+    user: celery_user
+    command: ["python", "/app/data_extraction/web_scrape.py"]
+    environment:
+    - PYTHONPATH=/app
+    - CHROME_BIN=/opt/chrome/chrome
+    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+
 volumes:
   redis_data:
   logs:

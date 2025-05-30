@@ -159,7 +159,7 @@ def access_rekrute(driver):
 def get_pages_url(driver):
     try:
         # Sélecteur adapté pour la nouvelle structure
-        pagination = WebDriverWait(driver, 10).until(
+        pagination = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, "div.slide-block div.pagination")
             )
@@ -172,7 +172,7 @@ def get_pages_url(driver):
             "href"
         )
         driver.get(page_link)
-        pagination = WebDriverWait(driver, 10).until(
+        pagination = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, "div.slide-block div.pagination select")
             )

@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import uuid
 
 import undetected_chromedriver as uc
 from jsonschema import ValidationError, validate
@@ -10,36 +9,49 @@ from selenium.webdriver.chrome.options import Options
 
 def init_driver():
     # Creation et configuration du Driver, pour pointer sur le driver changez le chemin executable_path
+    chrome_path = os.getenv("CHROME_BIN")
+    if not chrome_path:
+        raise ValueError("CHROME_BIN environment variable not set or empty")
+    if not isinstance(chrome_path, str):
+        raise TypeError("CHROME_BIN must be a string")
 
-    # executable_path = os.path.join(current_dir, "chromedriver-linux64/chromedriver")
-    current_path = os.path.abspath(__file__)
-    current_dir = os.path.dirname(current_path)
-    chrome_path = os.path.join(current_dir, "chrome-linux64/chrome")
-    executable_path = os.path.join(
-        current_dir, "chromedriver-linux64/chromechromedriver"
-    )  # PS: for windows
+    chrome_driver_path = os.getenv("CHROME_DRIVER_DIR")
+    if not chrome_driver_path:
+        raise ValueError("CHROME_DRIVER_DIR environment variable not set or empty")
+    if not isinstance(chrome_path, str):
+        raise TypeError("CHROME_DRIVER_DIR must be a string")
+
+    # Configuration du chromedriver
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # exécute Chrome sans interface
+    chrome_options.add_argument("--headless=new")  # exécute Chrome sans interface
     chrome_options.add_argument("--no-sandbox")  # requis pour Docker
     chrome_options.add_argument(
         "--disable-dev-shm-usage"
     )  # évite les erreurs liées à /dev/shm
     chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--remote-debugging-port=9222")
-    # chrome_options.add_argument("--start-maximized")
+    # chrome_options.add_argument("--start-maximized") # Uniquement pour machine locale
+    try:
+        uc_patcher = uc.Patcher(
+            executable_path=os.path.join(chrome_driver_path, "undetected_chromedriver")
+        )
+        if not uc_patcher.is_binary_patched():
+            uc_patcher.patch_exe()
+        print("chromedriver binary has now been patched")
+    except Exception as e:
+        print(f"Exception during patching {e}")
 
-    # temp_dir = tempfile.mkdtemp(prefix="profile_")
-    temp_dir = f"/tmp/profile_{uuid.uuid4()}"
-    driver = uc.Chrome(
-        browser_executable_path=chrome_path,
-        driver_executable_path=executable_path,
-        options=chrome_options,
-        user_data_dir=temp_dir,
-        user_multi_procs=True,
-    )
-
+    try:
+        driver = uc.Chrome(
+            browser_executable_path=chrome_path,
+            driver_executable_path=os.path.join(
+                chrome_driver_path, "undetected_chromedriver"
+            ),
+            options=chrome_options,
+        )
+    except FileNotFoundError:
+        driver = uc.Chrome(browser_executable_path=chrome_path, options=chrome_options)
     driver.implicitly_wait(
-        2
+        10
     )  # Time before the program exits in case of exception in seconds, will not wait if the program runs normally
 
     return driver
