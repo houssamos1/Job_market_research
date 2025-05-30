@@ -1,17 +1,12 @@
-from celery_app.tasks import (
-    bayt_task,
-    emploi_task,
-    init_driver,
-    marocann_task,
-    rekrute_task,
-)
+import os
+import time
 
-try:
-    driver = init_driver()
-    driver.quit()
-except Exception as e:
-    print(f"Couldn't initialize driver: {e}")
-rekrute_task.delay()
-bayt_task.delay()
-emploi_task.delay()
-marocann_task.delay()
+from celery_app.tasks import web_scrape
+from data_extraction.Websites import init_driver
+
+patch_driver = init_driver()
+patch_driver.quit()
+print(f"The driver should be patched and put in {os.environ.get('CHROME_DRIVER_BIN')}")
+time.sleep(5)
+
+web_scrape.delay()

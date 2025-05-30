@@ -29,7 +29,7 @@ def access_emploi(driver: webdriver.Chrome):
 
 def get_number_pages(driver: webdriver.Chrome):
     try:
-        pages = WebDriverWait(driver, 10).until(
+        pages = WebDriverWait(driver, 15).until(
             EC.presence_of_all_elements_located(
                 (By.CSS_SELECTOR, "li[class='pager-item active pagination-numbers']")
             )
@@ -74,7 +74,7 @@ def main(logger=setup_logger("emploi.log")):
 
             # Attendre que les cartes d'offres soient chargées
             try:
-                WebDriverWait(driver, 10).until(
+                WebDriverWait(driver, 15).until(
                     EC.presence_of_all_elements_located(
                         (By.CSS_SELECTOR, "div.card.card-job")
                     )
@@ -85,7 +85,7 @@ def main(logger=setup_logger("emploi.log")):
                 )
                 break
 
-            cards = WebDriverWait(driver, 3).until(
+            cards = WebDriverWait(driver, 15).until(
                 EC.presence_of_all_elements_located(
                     (By.CSS_SELECTOR, "div.card.card-job")
                 )

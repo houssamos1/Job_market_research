@@ -1,5 +1,12 @@
-from celery_app import app
+from celery import Celery, group
+
 from data_extraction.Websites import MarocAnn, Rekrute, bayt, emploi
+
+# Names the app "celery_app"
+app = Celery("celery_app")
+# path to the default config for "celery_app"
+default_config = "celery_app.celeryconfig"
+app.config_from_object(default_config)
 
 
 @app.task(name="rekrute", bind=True, max_retries=3, default_retry_delay=10)
@@ -40,3 +47,12 @@ def emploi_task(self):
     except Exception as e:
         print(f"Exception lors de l'execution du script emploi: {e} ")
         raise self.retry(exc=e)
+
+
+@app.task(name="web_scrape")
+def web_scrape():
+    scrapers = group(
+        emploi_task.s(), rekrute_task.s(), bayt_task.s(), marocann_task.s()
+    )
+    result = scrapers.apply_async()
+    print(f"The group finished running with these results: {result.get()}")
