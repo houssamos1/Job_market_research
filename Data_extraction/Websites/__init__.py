@@ -6,6 +6,9 @@ import undetected_chromedriver as uc
 from jsonschema import ValidationError, validate
 from selenium.webdriver.chrome.options import Options
 
+current_path = os.path.abspath(__file__)
+current_dir = os.path.dirname(current_path)
+
 
 def init_driver():
     # Creation et configuration du Driver, pour pointer sur le driver changez le chemin executable_path
