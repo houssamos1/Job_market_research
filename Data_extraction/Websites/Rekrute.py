@@ -15,6 +15,8 @@ from data_extraction.Websites import (
     validate_json,
 )
 
+logger = setup_logger("Rekrute.log")
+
 
 # --- Fonction d'extraction des offres sur la page courante ---
 def extract_offers(driver):
@@ -157,7 +159,7 @@ def access_rekrute(driver):
 def get_pages_url(driver):
     try:
         # Sélecteur adapté pour la nouvelle structure
-        pagination = WebDriverWait(driver, 10).until(
+        pagination = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, "div.slide-block div.pagination")
             )
@@ -170,7 +172,7 @@ def get_pages_url(driver):
             "href"
         )
         driver.get(page_link)
-        pagination = WebDriverWait(driver, 10).until(
+        pagination = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, "div.slide-block div.pagination select")
             )
@@ -201,16 +203,20 @@ def change_page(driver, page_url):
         )
 
 
-def main():
+def main(logger=setup_logger("Rekrute.log")):
     """Cette fonction permet de parcourir le site rekrute et d'en extraire les offres d'emploi.
     L'utilisation par defaut recherche des offres liées au domaine de la Data.
     """
-    start_time = time.time()
+    try:
+        driver = init_driver()
+    except Exception as e:
+        logger.exception(f"Couldn't start the driver {e}")
 
+    start_time = time.time()
     logger.info("Début de l'extraction des offres d'emploi sur Rekrute")
     try:
         # --- Initialisation du driver Chrome ---
-        driver = init_driver()
+
         data = []  # Liste qui contiendra toutes les offres
         access_rekrute(driver)
         logger.info("Accès à la page de recherche réussi.")
@@ -237,6 +243,5 @@ def main():
 main()
 =======
 if __name__ == "__main__":
-    logger = setup_logger("Rekrute.log")
     main()
 >>>>>>> 06572de2b55ec9ee969bebf9f33ea25d80aa546d

@@ -19,6 +19,8 @@ from data_extraction.Websites import (
     validate_json,
 )
 
+logger = setup_logger("maroc_ann.log")
+
 
 def extract_offers(driver: webdriver.Chrome):
     """Extrait les offres sur la page actuelle du site."""
@@ -136,18 +138,25 @@ def change_page(driver, base_url, page_num):
     """Navigue vers la page indiquée."""
     try:
         driver.get(base_url.format(page_num))
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.holder"))
         )
         logger.info(f"Page {page_num} chargée.")
         return True
+    except TimeoutException:
+        logger.info("Plus de page à parcourir")
+        False
     except Exception as e:
         logger.exception(f"Erreur chargement page {page_num}: {e}")
         return False
 
 
-def main():
-    driver = init_driver()
+def main(logger=setup_logger("maroc_ann.log")):
+    try:
+        driver = init_driver()
+    except Exception as e:
+        logger.exception(f"Couldn't start the driver {e}")
+
     old_data = load_json("offres_marocannonces.json")
     all_offers, new_data = [], []
 
@@ -187,10 +196,12 @@ def main():
                 logger.exception(f"Offre invalide : {url} - {e}")
 
     finally:
-        driver.quit()
-        logger.info(f"{len(new_data)} nouvelles offres collectées.")
+        if driver:
+            driver.quit()
         save_json(new_data, "offres_marocannonces.json")
-        logger.info("Scraping terminé.")
+        logger.info(
+            f"Scraping terminé avec {len(new_data)} nouvelles offres collectées."
+        )
 
     return new_data
 
@@ -199,6 +210,5 @@ def main():
 main()
 =======
 if __name__ == "__main__":
-    logger = setup_logger("maroc_ann.log")
     main()
 >>>>>>> 06572de2b55ec9ee969bebf9f33ea25d80aa546d

@@ -1,9 +1,10 @@
-import os
 import json
+import os
+import re
 import sys
 from datetime import datetime
+
 import pandas as pd
-import re
 
 # Répertoires possibles pour scraping_output/
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,7 +15,9 @@ CANDIDATE_DIRS = [
 ]
 
 # Trouve le premier dossier existant
-SCRAPING_DIR = next((d for d in CANDIDATE_DIRS if os.path.isdir(os.path.normpath(d))), None)
+SCRAPING_DIR = next(
+    (d for d in CANDIDATE_DIRS if os.path.isdir(os.path.normpath(d))), None
+)
 if SCRAPING_DIR is None:
     print(f"[ERROR] Aucun dossier scraping_output/ trouvé dans {CANDIDATE_DIRS}")
     sys.exit(1)
@@ -27,9 +30,12 @@ def infer_source_from_filename(fname):
     m = re.match(r"offres_emploi_(.+)\.json", fname, re.IGNORECASE)
     return m.group(1).capitalize() if m else fname.replace(".json", "")
 
+
 def load_and_annotate():
     all_offers = []
-    json_files = sorted(f for f in os.listdir(SCRAPING_DIR) if f.lower().endswith(".json"))
+    json_files = sorted(
+        f for f in os.listdir(SCRAPING_DIR) if f.lower().endswith(".json")
+    )
     if not json_files:
         print(f"[WARN] Aucun JSON dans {SCRAPING_DIR}")
         return all_offers

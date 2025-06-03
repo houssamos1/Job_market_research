@@ -17,11 +17,12 @@ services:
       - "8081:8081"
     environment:
       - REDIS_HOSTS=local:redis:6379
+
   celery:
     build:
       context: .
-      dockerfile: Dockerfile.celery
-    image: app_image
+      dockerfile: Dockerfile
+    image: app_worker
     container_name: celery_container
     command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
     depends_on:
@@ -29,12 +30,20 @@ services:
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/app/data_extraction/Websites/log
 
+    environment:
+    - PYTHONPATH=/app
+    - CHROME_BIN=/opt/chrome/chrome
+    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+
+
+
   flower:
 
-    image: app_image
+    image: app_worker
     container_name: flower_container
     ports:
       - "5555:5555"
@@ -42,26 +51,49 @@ services:
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
+      - output:/app/data_extraction/scraping_output
+      - logs:/app/data_extraction/Websites/log
     depends_on:
       - redis
       - celery
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    ports:
-      - "9090:9090"
+  data_extraction:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app_worker
+    container_name: data_extraction_container
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
+      - output:/app/data_extraction/scraping_output
+      - logs:/app/data_extraction/Websites/log
+
     depends_on:
-      - flower
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
+      - redis
+      - celery
+    user: celery_user
+    command: ["python", "/app/data_extraction/web_scrape.py"]
+    environment:
+    - PYTHONPATH=/app
+    - CHROME_BIN=/opt/chrome/chrome
+    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+  minio:
+    image: minio/minio
+    container_name: minio_storage_server
+    volumes:
+      - minio_data:/data
     ports:
-    - 3000:3000
-    depends_on:
-      - prometheus
+      - 9000:9000
+      - 9090:9090
+    env_file:
+      - .env
+    command: ["minio","server",'--console-address',":9090","/data"]
+
+
+
 volumes:
   redis_data:
+  minio_data:
   logs:
   output:

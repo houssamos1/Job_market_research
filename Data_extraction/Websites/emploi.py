@@ -15,6 +15,7 @@ from data_extraction.Websites import (
     validate_json,
 )
 
+logger = setup_logger("emploi.log")
 # Liste pour stocker les nouvelles données scrappées
 new_jobs = []
 
@@ -28,7 +29,7 @@ def access_emploi(driver: webdriver.Chrome):
 
 def get_number_pages(driver: webdriver.Chrome):
     try:
-        pages = WebDriverWait(driver, 10).until(
+        pages = WebDriverWait(driver, 15).until(
             EC.presence_of_all_elements_located(
                 (By.CSS_SELECTOR, "li[class='pager-item active pagination-numbers']")
             )
@@ -40,9 +41,12 @@ def get_number_pages(driver: webdriver.Chrome):
         return 1
 
 
-def main():
+def main(logger=setup_logger("emploi.log")):
     # Initialisation du driver
-    driver = init_driver()
+    try:
+        driver = init_driver()
+    except Exception as e:
+        logger.exception(f"Couldn't start the driver {e}")
 
     try:
         access_emploi(driver)
@@ -70,7 +74,7 @@ def main():
 
             # Attendre que les cartes d'offres soient chargées
             try:
-                WebDriverWait(driver, 10).until(
+                WebDriverWait(driver, 15).until(
                     EC.presence_of_all_elements_located(
                         (By.CSS_SELECTOR, "div.card.card-job")
                     )
@@ -81,7 +85,7 @@ def main():
                 )
                 break
 
-            cards = WebDriverWait(driver, 3).until(
+            cards = WebDriverWait(driver, 15).until(
                 EC.presence_of_all_elements_located(
                     (By.CSS_SELECTOR, "div.card.card-job")
                 )
@@ -248,6 +252,5 @@ def main():
 main()
 =======
 if __name__ == "__main__":
-    logger = setup_logger("emploi.log")
     main()
 >>>>>>> 06572de2b55ec9ee969bebf9f33ea25d80aa546d

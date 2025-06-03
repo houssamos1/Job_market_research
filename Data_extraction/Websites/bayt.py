@@ -24,6 +24,8 @@ from data_extraction.Websites import (
     validate_json,
 )
 
+logger = setup_logger("bayt.log")
+
 
 def extract_date_from_text(text: str):
     try:
@@ -92,7 +94,7 @@ def access_bayt(driver: webdriver.Chrome):
     base_url = "https://www.bayt.com/en/morocco/"
     driver.get(base_url)
     # Attendre que la barre de recherche soit disponible, puis saisir "DATA"
-    search_input = WebDriverWait(driver, 5).until(
+    search_input = WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "input#text_search"))
     )
     search_input.clear()
@@ -105,7 +107,7 @@ def extract_job_info(driver: webdriver.Chrome):
         data = load_json("offres_emploi_bayt.json")
     except FileNotFoundError:
         data = []
-    job_urls = WebDriverWait(driver, 5).until(
+    job_urls = WebDriverWait(driver, 15).until(
         EC.presence_of_all_elements_located(
             (By.CSS_SELECTOR, "div.row.is-compact.is-m.no-wrap > h2 > a")
         )
@@ -121,7 +123,7 @@ def extract_job_info(driver: webdriver.Chrome):
                 continue
             driver.get(job_url)
             try:
-                pop_up = WebDriverWait(driver, 5).until(
+                pop_up = WebDriverWait(driver, 15).until(
                     EC.presence_of_element_located(
                         (
                             By.CSS_SELECTOR,
@@ -161,7 +163,7 @@ def extract_job_details(driver: webdriver.Chrome):
         titre = ""
     try:
         publication_date = (
-            WebDriverWait(driver, 5)
+            WebDriverWait(driver, 15)
             .until(
                 EC.presence_of_element_located(
                     (By.CSS_SELECTOR, 'span[id="jb-posted-date"]')
@@ -201,7 +203,7 @@ def extract_job_details(driver: webdriver.Chrome):
 
 def find_number_of_pages(driver: webdriver.Chrome):
     try:
-        num_of_pages = WebDriverWait(driver, 5).until(
+        num_of_pages = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, "ul.pagination li.pagination-last-d a")
             )
@@ -225,7 +227,7 @@ def change_page(
     if current_page <= max_pages:
         try:
             driver.get(next_page)
-            # WebDriverWait(driver, 5).until(EC.url_to_be(next_page))
+
             return True
         except TimeoutException:
             logger.exception("No more pages to load.")
@@ -235,13 +237,15 @@ def change_page(
         return False
 
 
-def main():
+def main(logger=setup_logger("bayt.log")):
+    try:
+        driver = init_driver()
+    except Exception as e:
+        logger.exception(f"Couldn't start the driver {e}")
     start_time = time.time()
-
     logger.info("Début de l'extraction des offres d'emploi sur Bayt.com")
     # Initialiser le driver
     try:
-        driver = init_driver()
         data = []
         # Accéder à la page de base
         access_bayt(driver)
@@ -275,6 +279,5 @@ def main():
 main()
 =======
 if __name__ == "__main__":
-    logger = setup_logger("bayt.log")
     main()
 >>>>>>> 06572de2b55ec9ee969bebf9f33ea25d80aa546d

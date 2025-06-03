@@ -5,9 +5,11 @@
 /.venv/
 /venv/
 /.env
-
-
-
+*.json
+__pycache__
+*.csv
+.pytest_cache
+.ruff_cache
 *.log
 *.txt
 *pyc
