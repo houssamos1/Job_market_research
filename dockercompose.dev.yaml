@@ -78,8 +78,22 @@ services:
     - PYTHONPATH=/app
     - CHROME_BIN=/opt/chrome/chrome
     - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+  minio:
+    image: minio/minio
+    container_name: minio_storage_server
+    volumes:
+      - minio_data:/data
+    ports:
+      - 9000:9000
+      - 9090:9090
+    env_file:
+      - .env
+    command: ["minio","server",'--console-address',":9090","/data"]
+
+
 
 volumes:
   redis_data:
+  minio_data:
   logs:
   output:
