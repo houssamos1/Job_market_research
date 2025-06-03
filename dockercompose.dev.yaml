@@ -1,5 +1,5 @@
 name: Job_analytics_app
-version: '3.8'
+
 services:
 
   redis:
@@ -93,11 +93,9 @@ services:
 
   postgres:
     image: postgres:latest
-    container_name: postgres_dev
-    environment:
-      - POSTGRES_USER=root
-      - POSTGRES_PASSWORD=123456
-      - POSTGRES_DB=offers
+    container_name: postgres_storage_server
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
