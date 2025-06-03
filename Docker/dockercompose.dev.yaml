@@ -20,7 +20,7 @@ services:
 
   celery:
     build:
-      context: .
+      context: ./Docker
       dockerfile: Dockerfile
     image: app_worker
     container_name: celery_container
@@ -59,7 +59,7 @@ services:
       - celery
   data_extraction:
     build:
-      context: .
+      context: ./Docker
       dockerfile: Dockerfile
     image: app_worker
     container_name: data_extraction_container
