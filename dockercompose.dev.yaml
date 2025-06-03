@@ -1,0 +1,107 @@
+name: Job_analytics_app
+services:
+
+  redis:
+    image: redis:latest
+    container_name: redis
+
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+  redis-commander:
+    image: rediscommander/redis-commander
+    container_name: rediscommander
+
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app_worker
+    container_name: celery_container
+    command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
+    depends_on:
+      - redis
+    user: celery_user
+    volumes:
+      - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
+      - output:/app/data_extraction/scraping_output
+      - logs:/var/log
+
+    environment:
+    - PYTHONPATH=/app
+    - CHROME_BIN=/opt/chrome/chrome
+    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+
+
+
+  flower:
+
+    image: app_worker
+    container_name: flower_container
+    ports:
+      - "5555:5555"
+    command: ["celery", "-A", "celery_app.tasks", "flower", "--port=5555","--loglevel=info"]
+    user: celery_user
+    volumes:
+      - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
+      - output:/app/data_extraction/scraping_output
+      - logs:/var/log
+    depends_on:
+      - redis
+      - celery
+  data_extraction:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app_worker
+    container_name: data_extraction_container
+    volumes:
+      - ./celery_app:/app/celery_app
+      - ./data_extraction/Websites:/app/data_extraction/Websites
+      - output:/app/data_extraction/scraping_output
+      - logs:/var/log
+
+    depends_on:
+      - redis
+      - celery
+    user: celery_user
+    command: ["python", "/app/data_extraction/web_scrape.py"]
+    environment:
+    - PYTHONPATH=/app
+    - CHROME_BIN=/opt/chrome/chrome
+    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+  minio:
+    image: minio/minio
+
+    container_name: minio_storage_server
+    volumes:
+      - minio_data:/data
+    ports:
+      - 9000:9000
+      - 9080:9080
+    env_file:
+      - .env
+    command: ["minio","server",'--console-address',":9080","/data"]
+  prometheus:
+      image: prom/prometheus
+      container_name: prometheus
+      ports:
+        - "9090:9090"
+      volumes:
+        - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+
+
+volumes:
+  redis_data:
+  minio_data:
+  logs:
+  output:
