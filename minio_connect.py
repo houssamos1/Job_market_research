@@ -14,13 +14,14 @@ print(ACCESS_KEY)
 
 def main():
     client = Minio(
-        endpoint=MINIO_URL,
+        endpoint="127.0.0.1:9000",
         access_key=ACCESS_KEY,
         secret_key=SECRET_KEY,
+        secure=False,
     )
 
     # The file to upload, change this path if needed
-    source_file = "/celery.png"
+    source_file = "celery.png"
 
     # The destination bucket and filename on the MinIO server
     bucket_name = "python-test-bucket"
