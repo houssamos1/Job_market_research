@@ -1,4 +1,5 @@
 name: Job_analytics_app
+
 services:
 
   redis:
@@ -90,6 +91,21 @@ services:
       - .env
     command: ["minio","server",'--console-address',":9090","/data"]
 
+  postgres:
+    image: postgres:latest
+    container_name: postgres_storage_server
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d offers"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 
 volumes:
@@ -97,3 +113,4 @@ volumes:
   minio_data:
   logs:
   output:
+  postgres_data:
