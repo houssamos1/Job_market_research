@@ -216,7 +216,7 @@ def setup_logger(filename="app.log", level=logging.INFO):
     logger.propagate = False  # Disable propagation to root logger
     # Defining the file path
     try:
-        log_folder = "var/log"
+        log_folder = os.environ.get("LOG_DIR")
         log_file = os.path.join(log_folder, filename)
         if not os.path.exists(log_file):
             open(log_file, "w")
