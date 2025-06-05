@@ -33,7 +33,7 @@ services:
       - ./celery_app:/app/celery_app
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
-      - logs:/app/data_extraction/Websites/log
+      - logs:/var/log
 
     environment:
     - PYTHONPATH=/app
@@ -54,7 +54,7 @@ services:
       - ./celery_app:/app/celery_app
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
-      - logs:/app/data_extraction/Websites/log
+      - logs:/var/log
     depends_on:
       - redis
       - celery
@@ -68,7 +68,7 @@ services:
       - ./celery_app:/app/celery_app
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
-      - logs:/app/data_extraction/Websites/log
+      - logs:/var/log
 
     depends_on:
       - redis
@@ -81,15 +81,23 @@ services:
     - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
   minio:
     image: minio/minio
+
     container_name: minio_storage_server
     volumes:
       - minio_data:/data
     ports:
       - 9000:9000
-      - 9090:9090
+      - 9080:9080
     env_file:
       - .env
-    command: ["minio","server",'--console-address',":9090","/data"]
+    command: ["minio","server",'--console-address',":9080","/data"]
+  prometheus:
+      image: prom/prometheus
+      container_name: prometheus
+      ports:
+        - "9090:9090"
+      volumes:
+        - ./prometheus.yml:/etc/prometheus/prometheus.yml
 
   postgres:
     image: postgres:latest
