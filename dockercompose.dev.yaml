@@ -92,22 +92,21 @@ services:
     command: ["minio","server",'--console-address',":9090","/data"]
 
   postgres:
-    image: postgres:latest
+    image: postgres:17
     container_name: postgres_storage_server
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Mount the schema.sql file to be executed on first run
-      - ./Postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql 
-    ports:
-      - "5432:5432"
+      - ./Postgres/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d offers"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    
 
 
 volumes:

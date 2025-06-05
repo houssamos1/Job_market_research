@@ -1,66 +1,72 @@
--- Create Dimension Tables
+-- ===============================
+-- Schema SQL pour Job Market DB
+-- Sans accents pour éviter erreurs
+-- ===============================
 
-CREATE TABLE DimDate (
-    DateKey INTEGER PRIMARY KEY,
-    Date DATE,
-    Année INTEGER,
-    Trimestre TEXT
+-- Suppression si existent
+DROP TABLE IF EXISTS fact_competence, fact_offre,
+    dim_competence, dim_contrat, dim_date, dim_entreprise,
+    dim_localisation, dim_profil CASCADE;
+
+-- ====================
+-- Tables dimensionnelles
+-- ====================
+
+CREATE TABLE dim_date (
+    id_date SERIAL PRIMARY KEY,
+    jour INT,
+    mois INT,
+    annee INT,
+    jour_semaine TEXT,
+    est_weekend BOOLEAN
 );
 
-CREATE TABLE DimEntreprise (
-    EntrepriseKey INTEGER PRIMARY KEY,
-    CompanyName TEXT,
-    SecteurPrincipal TEXT
+CREATE TABLE dim_competence (
+    id_competence SERIAL PRIMARY KEY,
+    nom TEXT
 );
 
-CREATE TABLE DimLocalisation (
-    LocalisationKey INTEGER PRIMARY KEY,
-    Ville TEXT,
-    Région TEXT,
-    Pays TEXT,
-    TypeRemote TEXT
+CREATE TABLE dim_contrat (
+    id_contrat SERIAL PRIMARY KEY,
+    type_contrat TEXT
 );
 
-CREATE TABLE DimProfil (
-    ProfilKey INTEGER PRIMARY KEY,
-    TitreOffre TEXT,
-    ProfilNormalized TEXT,
-    NiveauProfil TEXT
+CREATE TABLE dim_entreprise (
+    id_entreprise SERIAL PRIMARY KEY,
+    nom TEXT
 );
 
-CREATE TABLE DimContrat (
-    ContratKey INTEGER PRIMARY KEY,
-    ContratType TEXT,
-    TypeTravail TEXT
+CREATE TABLE dim_localisation (
+    id_localisation SERIAL PRIMARY KEY,
+    ville TEXT,
+    pays TEXT
 );
 
-CREATE TABLE DimCompétence (
-    CompetenceKey INTEGER PRIMARY KEY,
-    CompetenceNom TEXT,
-    TypeCompetence TEXT
+CREATE TABLE dim_profil (
+    id_profil SERIAL PRIMARY KEY,
+    intitule TEXT
 );
 
--- Create Fact Table
+-- ====================
+-- Tables de faits
+-- ====================
 
-CREATE TABLE FactOffre (
-    OffreID TEXT PRIMARY KEY,
-    DateKey INTEGER REFERENCES DimDate(DateKey),
-    EntrepriseKey INTEGER REFERENCES DimEntreprise(EntrepriseKey),
-    LocalisationKey INTEGER REFERENCES DimLocalisation(LocalisationKey),
-    ProfilKey INTEGER REFERENCES DimProfil(ProfilKey),
-    ContratKey INTEGER REFERENCES DimContrat(ContratKey),
-    IsDataProfile BOOLEAN,
-    EducationLevel INTEGER,
-    ExperienceYears INTEGER,
-    Seniority TEXT,
-    NbHardSkills INTEGER,
-    NbSoftSkills INTEGER
+CREATE TABLE fact_offre (
+    id_offre SERIAL PRIMARY KEY,
+    id_date INT REFERENCES dim_date(id_date),
+    id_entreprise INT REFERENCES dim_entreprise(id_entreprise),
+    id_localisation INT REFERENCES dim_localisation(id_localisation),
+    id_profil INT REFERENCES dim_profil(id_profil),
+    id_contrat INT REFERENCES dim_contrat(id_contrat),
+    source TEXT,
+    date_publication TIMESTAMP,
+    salaire_min NUMERIC,
+    salaire_max NUMERIC
 );
 
--- Create Bridge Table for Many-to-Many Relationship
-
-CREATE TABLE Fact_Compétence (
-    OffreID TEXT REFERENCES FactOffre(OffreID),
-    CompetenceKey INTEGER REFERENCES DimCompétence(CompetenceKey),
-    PRIMARY KEY (OffreID, CompetenceKey)
+CREATE TABLE fact_competence (
+    id_offre INT REFERENCES fact_offre(id_offre),
+    id_competence INT REFERENCES dim_competence(id_competence),
+    niveau TEXT,
+    PRIMARY KEY (id_offre, id_competence)
 );
