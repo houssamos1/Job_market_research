@@ -21,6 +21,7 @@ new_jobs = []
 
 
 def access_emploi(driver: webdriver.Chrome):
+    """Accède à la page de recherche d'emploi.ma avec un mot-clé prédéfini."""
     # Accès à l'URL initiale pour soumettre la recherche "DATA AI ML"
     driver.get(
         "https://www.emploi.ma/recherche-jobs-maroc/data?f%5B0%5D=im_field_offre_metiers%3A31"
@@ -28,6 +29,17 @@ def access_emploi(driver: webdriver.Chrome):
 
 
 def get_number_pages(driver: webdriver.Chrome):
+    """
+    Récupère le nombre total de pages de résultats sur emploi.ma.
+
+    Extrait le numéro de la dernière page à partir des liens de pagination.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+
+    Returns:
+        int: Nombre total de pages, ou 1 si introuvable.
+    """
     try:
         pages = WebDriverWait(driver, 15).until(
             EC.presence_of_all_elements_located(
@@ -42,6 +54,16 @@ def get_number_pages(driver: webdriver.Chrome):
 
 
 def main(logger=setup_logger("emploi.log")):
+    """Exécute l'extraction des offres d'emploi sur emploi.ma.
+
+    Orchestre l'initialisation du WebDriver, la navigation sur emploi.ma, l'extraction des offres, et leur sauvegarde.
+
+    Args:
+        logger (logging.Logger, optional): Instance du logger pour enregistrer les événements. Par défaut utilise setup_logger("emploi.log").
+
+    Returns:
+        list: Liste des nouvelles offres d'emploi extraites.
+    """
     # Initialisation du driver
     try:
         driver = init_driver()
