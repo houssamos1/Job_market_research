@@ -1,20 +1,35 @@
-import psycopg2
 import os
 from dotenv import load_dotenv
+import pg8000
 
+# Charger les variables d'environnement depuis .env
 load_dotenv()
 
+DB_USER = os.getenv("POSTGRES_USER", "root")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "123456")
+DB_NAME = os.getenv("POSTGRES_DB", "offers")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5430")
+
+print("🔍 Paramètres de connexion pg8000 :")
+print(f"  Host    : {DB_HOST}")
+print(f"  Port    : {DB_PORT}")
+print(f"  User    : {DB_USER}")
+print(f"  Database: {DB_NAME}\n")
+
 try:
-    print("🔌 Tentative de connexion à PostgreSQL...")
-    conn = psycopg2.connect(
-        dbname=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        options="-c client_encoding=UTF8"
+    print("🔌 Tentative de connexion pg8000…")
+    conn = pg8000.connect(
+        user="root",
+        password="123456",
+        host="localhost",
+        port="5430",
+        database="offers",
+        
     )
-    print("✅ Connexion PostgreSQL réussie.")
-    conn.close()
+    print("✅ Connexion pg8000 réussie\n")
+
+   
+
 except Exception as e:
-    print("❌ Erreur de connexion PostgreSQL :", e)
+    print("❌ Erreur pg8000 :", e)

@@ -20,3 +20,15 @@ data_extraction/Websites/chromedriver-win64/
 *.json
 *.csv
 .env
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+data_extraction/Websites/log
+output
+logs
+.git
+.vscode
+*.log
+
