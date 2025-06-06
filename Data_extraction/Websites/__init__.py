@@ -11,6 +11,7 @@ current_dir = os.path.dirname(current_path)
 
 
 def init_driver():
+
     """
     Initialise une instance de WebDriver Selenium pour la navigation web.
 
@@ -21,18 +22,12 @@ def init_driver():
 
     Returns:
         uc.Chrome: Une instance de WebDriver configurée et prête à l'usage.
-
-    Raises:
-        ValueError: Si les variables d'environnement requises ne sont pas définies ou sont vides.
-        TypeError: Si les variables d'environnement ne sont pas des chaînes de caractères.
-        FileNotFoundError: Si l'exécutable du driver n'est pas trouvé.
-        Exception: Si l'initialisation échoue en raison de problèmes imprévus.
-
-    Note:
-        Nécessite que les variables d'environnement CHROME_BIN et CHROME_DRIVER_DIR soient définies.
     """
     
     # Creation et configuration du Driver, pour pointer sur le driver changez le chemin executable_path
+
+    # Creation et configuration du Driver, pour pointer sur le driver changez le chemin chd
+
     chrome_path = os.getenv("CHROME_BIN")
     if not chrome_path:
         raise ValueError("CHROME_BIN environment variable not set or empty")
@@ -53,10 +48,9 @@ def init_driver():
         "--disable-dev-shm-usage"
     )  # évite les erreurs liées à /dev/shm
     chrome_options.add_argument("--disable-gpu")
-    # chrome_options.add_argument("--start-maximized") # Uniquement pour machine locale
     try:
         uc_patcher = uc.Patcher(
-            executable_path=os.path.join(chrome_driver_path, "undetected_chromedriver")
+            executable_path=os.path.join(chrome_driver_path, "chromedriver")
         )
         if not uc_patcher.is_binary_patched():
             uc_patcher.patch_exe()
@@ -64,16 +58,18 @@ def init_driver():
     except Exception as e:
         print(f"Exception during patching {e}")
 
+    patched_chrome_driver_path = os.path.join(
+        chrome_driver_path, "undetected_chromedriver"
+    )
     try:
         driver = uc.Chrome(
             browser_executable_path=chrome_path,
-            driver_executable_path=os.path.join(
-                chrome_driver_path, "undetected_chromedriver"
-            ),
+            driver_executable_path=patched_chrome_driver_path,
             options=chrome_options,
         )
     except FileNotFoundError:
         driver = uc.Chrome(browser_executable_path=chrome_path, options=chrome_options)
+        print(f"The patched executable wasnt found in: {patched_chrome_driver_path}")
     driver.implicitly_wait(
         10
     )  # Time before the program exits in case of exception in seconds, will not wait if the program runs normally
@@ -265,19 +261,28 @@ def setup_logger(filename="app.log", level=logging.INFO):
     Returns:
         logging.Logger: Une instance de logger configurée.
     """
+
     logger = logging.getLogger("my_logger")
     logger.propagate = False  # Disable propagation to root logger
     # Defining the file path
-    current_path = os.path.abspath(__file__)
-    current_dir = os.path.dirname(current_path)
-    log_folder = os.path.join(current_dir, "log")
-    log_file = os.path.join(log_folder, filename)
-    # create the log folder if not found
-    os.makedirs(log_folder, exist_ok=True)
-    # create the log file if not found
-    if not os.path.exists(log_file):
-        open(log_file, "w")
-        pass
+    try:
+        log_folder = os.environ.get("LOG_DIR")
+        log_file = os.path.join(log_folder, filename)
+        if not os.path.exists(log_file):
+            open(log_file, "w")
+            pass
+    except Exception:
+        print("Exception during search for log folder")
+        current_path = os.path.abspath(__file__)
+        current_dir = os.path.dirname(current_path)
+        log_folder = os.path.join(current_dir, "log")
+        log_file = os.path.join(log_folder, filename)
+        # create the log folder if not found
+        os.makedirs(log_folder, exist_ok=True)
+        # create the log file if not found
+        if not os.path.exists(log_file):
+            open(log_file, "w")
+            pass
     if not logger.hasHandlers():
         # Set the default logging configuration
         file_handler = logging.FileHandler(log_file)  # Log to a file
@@ -291,7 +296,7 @@ def setup_logger(filename="app.log", level=logging.INFO):
         console_handler.setFormatter(formatter)
         # Add the handlers to the logger
         logger.addHandler(file_handler)
-        logger.addHandler(console_handler)  # Adds logging to console (stdout)
+        # logger.addHandler(console_handler)  # Adds logging to console (stdout)
         logger.setLevel(level)
 
     return logger
