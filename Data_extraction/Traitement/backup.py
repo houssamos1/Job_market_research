@@ -28,11 +28,19 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 def infer_source_from_filename(fname):
+    """Déduit la source d'un fichier JSON à partir de son nom."""
     m = re.match(r"offres_emploi_(.+)\.json", fname, re.IGNORECASE)
     return m.group(1).capitalize() if m else fname.replace(".json", "")
 
 
 def load_and_annotate():
+    """Charge et annote les offres d'emploi à partir de fichiers JSON dans un répertoire.
+
+    Récupère tous les fichiers JSON du répertoire SCRAPING_DIR, ajoute une annotation "via" à chaque offre, et les regroupe.
+
+    Returns:
+        list: Liste de toutes les offres chargées et annotées.
+    """
     all_offers = []
     json_files = sorted(
         f for f in os.listdir(SCRAPING_DIR) if f.lower().endswith(".json")
@@ -64,6 +72,10 @@ def load_and_annotate():
 
 
 def save_backup_and_excel(all_offers):
+    """Sauvegarde les offres d'emploi dans un fichier JSON et un rapport Excel.
+
+    Crée une sauvegarde JSON et un fichier Excel avec des onglets organisés par dates de collecte ou de publication.
+    """
     if not all_offers:
         print("Aucune offre à sauvegarder.")
         return

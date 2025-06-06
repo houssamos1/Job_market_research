@@ -156,6 +156,12 @@ Exemple de format de sortie :
 
 
 def main():
+    """Exécute le pipeline complet de traitement des offres d'emploi.
+
+    Charge les offres d'un fichier JSON, les traite par lots via l'API Groq, et sauvegarde les résultats enrichis.
+    Sauvegarde les résultats dans un fichier JSON avec métadonnées.
+    """
+
     input_file = "merged_jobs.json"
     output_file = "processed_jobs.json"
     batch_size = 2  # Nombre d'offres par lot
