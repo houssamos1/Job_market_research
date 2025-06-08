@@ -1,92 +1,121 @@
--- ==========================================
--- Schéma Job Market DB (avec contraintes)
--- ==========================================
+-- ↓ Supprime tout pour repartir à zéro
+DROP TABLE IF EXISTS
+  fact_offer_sector,
+  fact_offer_contract,
+  fact_offer_work_type,
+  fact_offer_remote,
+  fact_offer_company,
+  fact_competence,
+  fact_offre,
+  dim_sector,
+  dim_contrat,
+  dim_work_type,
+  dim_remote,
+  dim_company,
+  dim_profil,
+  dim_localisation,
+  dim_salaire,
+  dim_competence
+CASCADE;
 
--- 1) Suppression si existants
-DROP TABLE IF EXISTS fact_competence      CASCADE;
-DROP TABLE IF EXISTS fact_offre           CASCADE;
-DROP TABLE IF EXISTS dim_date             CASCADE;
-DROP TABLE IF EXISTS dim_competence       CASCADE;
-DROP TABLE IF EXISTS dim_contrat          CASCADE;
-DROP TABLE IF EXISTS dim_entreprise       CASCADE;
-DROP TABLE IF EXISTS dim_localisation     CASCADE;
-DROP TABLE IF EXISTS dim_profil           CASCADE;
-
--- 2) Création des tables
-
-CREATE TABLE dim_date (
-    id_date          SERIAL PRIMARY KEY,
-    date_publication DATE    NOT NULL,
-    jour             INT     NOT NULL,
-    mois             INT     NOT NULL,
-    annee            INT     NOT NULL,
-    jour_semaine     TEXT    NOT NULL,
-    est_weekend      BOOLEAN NOT NULL
-);
-
-CREATE TABLE dim_competence (
-    id_competence    SERIAL PRIMARY KEY,
-    nom              TEXT    NOT NULL,
-    type_competence  TEXT    NOT NULL   -- 'hard' ou 'soft'
-);
-
-CREATE TABLE dim_contrat (
-    id_contrat       SERIAL PRIMARY KEY,
-    type_contrat     TEXT    NOT NULL   -- ex. 'full-time', 'internship'
-);
-
-CREATE TABLE dim_entreprise (
-    id_entreprise    SERIAL PRIMARY KEY,
-    nom              TEXT    NOT NULL
+-- ========== DIMENSIONS ==========
+CREATE TABLE dim_profil (
+  profile_id   SERIAL PRIMARY KEY,
+  profile      TEXT       NOT NULL
 );
 
 CREATE TABLE dim_localisation (
-    id_localisation  SERIAL PRIMARY KEY,
-    ville            TEXT    NOT NULL,
-    pays             TEXT    NOT NULL
+  location_id  SERIAL PRIMARY KEY,
+  location     TEXT       NOT NULL
 );
 
-CREATE TABLE dim_profil (
-    id_profil        SERIAL PRIMARY KEY,
-    intitule         TEXT    NOT NULL
+CREATE TABLE dim_salaire (
+  salary_id    SERIAL PRIMARY KEY,
+  salary_range TEXT       NOT NULL
 );
 
+CREATE TABLE dim_contrat (
+  contract_id   SERIAL PRIMARY KEY,
+  contract_type TEXT       NOT NULL UNIQUE
+);
+
+CREATE TABLE dim_work_type (
+  work_type_id  SERIAL PRIMARY KEY,
+  work_type     TEXT       NOT NULL UNIQUE
+);
+
+CREATE TABLE dim_remote (
+  remote_id    SERIAL PRIMARY KEY,
+  is_remote    BOOLEAN    NOT NULL
+);
+
+CREATE TABLE dim_company (
+  company_id    SERIAL PRIMARY KEY,
+  company_name  TEXT       NOT NULL UNIQUE
+);
+
+CREATE TABLE dim_sector (
+  sector_id    SERIAL PRIMARY KEY,
+  sector       TEXT       NOT NULL UNIQUE
+);
+
+CREATE TABLE dim_competence (
+  skill_id        INTEGER   NOT NULL,
+  skill           TEXT      NOT NULL,
+  type_competence TEXT      NOT NULL CHECK(type_competence IN('hard','soft')),
+  PRIMARY KEY(skill_id,type_competence)
+);
+
+-- ============ FAITS ============
 CREATE TABLE fact_offre (
-    id_offre         SERIAL PRIMARY KEY,
-    id_date          INT     NOT NULL REFERENCES dim_date(id_date),
-    id_entreprise    INT     NOT NULL REFERENCES dim_entreprise(id_entreprise),
-    id_localisation  INT     NOT NULL REFERENCES dim_localisation(id_localisation),
-    id_profil        INT     NOT NULL REFERENCES dim_profil(id_profil),
-    id_contrat       INT     NOT NULL REFERENCES dim_contrat(id_contrat),
-    source           TEXT    NOT NULL,
-    date_publication TIMESTAMP NOT NULL,
-    salaire_min      NUMERIC,
-    salaire_max      NUMERIC
+  offer_id          SERIAL PRIMARY KEY,
+  job_url           TEXT,
+  titre             TEXT,
+  via               TEXT,
+  description       TEXT,
+  publication_date  DATE,
+  education_level   TEXT,
+  experience_years  TEXT,
+  seniority         TEXT,
+  profile_id        INTEGER REFERENCES dim_profil(profile_id),
+  location_id       INTEGER REFERENCES dim_localisation(location_id),
+  salary_id         INTEGER REFERENCES dim_salaire(salary_id)
+);
+
+-- Ponts vers nouvelles dims
+CREATE TABLE fact_offer_contract (
+  offer_id    INTEGER REFERENCES fact_offre(offer_id),
+  contract_id INTEGER REFERENCES dim_contrat(contract_id),
+  PRIMARY KEY(offer_id,contract_id)
+);
+
+CREATE TABLE fact_offer_work_type (
+  offer_id      INTEGER REFERENCES fact_offre(offer_id),
+  work_type_id  INTEGER REFERENCES dim_work_type(work_type_id),
+  PRIMARY KEY(offer_id,work_type_id)
+);
+
+CREATE TABLE fact_offer_remote (
+  offer_id   INTEGER REFERENCES fact_offre(offer_id),
+  remote_id  INTEGER REFERENCES dim_remote(remote_id),
+  PRIMARY KEY(offer_id,remote_id)
+);
+
+CREATE TABLE fact_offer_company (
+  offer_id   INTEGER REFERENCES fact_offre(offer_id),
+  company_id INTEGER REFERENCES dim_company(company_id),
+  PRIMARY KEY(offer_id,company_id)
+);
+
+CREATE TABLE fact_offer_sector (
+  offer_id  INTEGER REFERENCES fact_offre(offer_id),
+  sector_id INTEGER REFERENCES dim_sector(sector_id),
+  PRIMARY KEY(offer_id,sector_id)
 );
 
 CREATE TABLE fact_competence (
-    id_offre         INT NOT NULL REFERENCES fact_offre(id_offre),
-    id_competence    INT NOT NULL REFERENCES dim_competence(id_competence),
-    niveau           TEXT    NOT NULL,  -- 'hard' ou 'soft'
-    PRIMARY KEY (id_offre, id_competence, niveau)
+  offer_id    INTEGER REFERENCES fact_offre(offer_id),
+  skill_id    INTEGER,
+  niveau      TEXT    CHECK(niveau IN('hard','soft')),
+  PRIMARY KEY(offer_id,skill_id)
 );
-
--- 3) Ajout des contraintes UNIQUE pour ON CONFLICT
-
-ALTER TABLE dim_date
-  ADD CONSTRAINT uq_dim_date_datepub UNIQUE (date_publication);
-
-ALTER TABLE dim_competence
-  ADD CONSTRAINT uq_dim_competence_nom_type UNIQUE (nom, type_competence);
-
-ALTER TABLE dim_contrat
-  ADD CONSTRAINT uq_dim_contrat_type UNIQUE (type_contrat);
-
-ALTER TABLE dim_entreprise
-  ADD CONSTRAINT uq_dim_entreprise_nom UNIQUE (nom);
-
-ALTER TABLE dim_localisation
-  ADD CONSTRAINT uq_dim_localisation_vp UNIQUE (ville, pays);
-
-ALTER TABLE dim_profil
-  ADD CONSTRAINT uq_dim_profil_intitule UNIQUE (intitule);
