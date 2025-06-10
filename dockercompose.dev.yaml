@@ -81,8 +81,10 @@ services:
     volumes:
       - minio_data:/data
     ports:
+
       - 9000:9000
       - 9080:9080
+
     env_file:
       - .env
     command: ["minio","server",'--console-address',":9080","/data"]
@@ -90,20 +92,30 @@ services:
 
   postgres:
     image: postgres:latest
-    container_name: postgres
-    env_file:
-      - .env
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+   
     ports:
       - "5432:5432"
-    restart: unless-stopped
+
+    container_name: postgres
+
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d 
+    restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d offers"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+
+    
 
 volumes:
   redis_data:
@@ -111,3 +123,8 @@ volumes:
   logs:
   output:
   postgres_data:
+ 
+networks:
+  default:
+    driver: bridge
+    name: job_analytics_network
