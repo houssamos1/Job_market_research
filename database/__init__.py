@@ -30,29 +30,38 @@ def make_buckets(bucket_list: list = ["webscraping", "traitement"]):
 
 def save_to_minio(
     bucket_name="webscraping",
-    object_name="default",
     file_path="/app/database/default.json",
     content_type="application/json",
 ):
     try:
         client = start_client()
+        object_name = os.path.basename(file_path)
         client.fput_object(bucket_name, object_name, file_path, content_type)
-        print(f" Upload : {object_name}")
+        print(f" Uploaded the file : {object_name}")
     except S3Error as err:
         print(f" Erreur : {object_name} → {err}")
 
 
-def read_json(
+def read_from_minio(
     bucket_name="webscraping",
-    object_name="default",
-    file_path="/app/data_extraction/test_download.json",
-    content_type="application/json",
+    object_name="default.json",
+    file_path="/app/data_extraction/scraping_output/test_download.json",
 ):
     try:
         client = start_client()
-        json_file = client.fget_object(
-            bucket_name, object_name, file_path, content_type
-        )
+        json_file = client.fget_object(bucket_name, object_name, file_path)
         return json_file
     except Exception as e:
-        print(f"Can't download object from object storage {e}")
+        print(f"Can't download object from object storage: {e}")
+
+
+def scraping_upload(scraping_dir="data_extraction/scraping_output"):
+    try:
+        scraping_files = os.listdir(scraping_dir)
+
+        for file in scraping_files:
+            file_path = os.path.join(scraping_dir, file)
+            save_to_minio(file_path=file_path)
+
+    except Exception as e:
+        print(f"Couldn't list the files in the scraping folder:{e}")
