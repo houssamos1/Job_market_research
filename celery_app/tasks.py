@@ -1,6 +1,7 @@
 from celery import Celery, group
 
 from data_extraction.Websites import MarocAnn, Rekrute, bayt, emploi
+from database import scraping_upload
 
 # Names the app "celery_app"
 app = Celery("celery_app")
@@ -55,4 +56,5 @@ def web_scrape():
         emploi_task.s(), rekrute_task.s(), bayt_task.s(), marocann_task.s()
     )
     result = scrapers.apply_async()
+    scraping_upload()
     return result

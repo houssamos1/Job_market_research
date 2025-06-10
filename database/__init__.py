@@ -55,7 +55,7 @@ def read_from_minio(
         print(f"Can't download object from object storage: {e}")
 
 
-def scraping_upload(scraping_dir="data_extraction/scraping_output"):
+def scraping_upload(scraping_dir="/app/data_extraction/scraping_output"):
     try:
         scraping_files = os.listdir(scraping_dir)
 
