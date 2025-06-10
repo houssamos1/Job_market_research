@@ -98,7 +98,6 @@ def emploi_task(self):
         raise self.retry(exc=e)
 
 
-
 @app.task(name="scrape_upload")
 def scrape_upload(results):
     print(f"Upload results of the web scraping: {results}")
@@ -108,7 +107,7 @@ def scrape_upload(results):
 
 @app.task(name="scraping_workflow")
 def scraping_workflow():
-  """
+    """
     Tâche Celery pour exécuter un groupe de tâches de scraping web.
 
     Lance les tâches emploi_task, rekrute_task, bayt_task et marocann_task en parallèle
@@ -118,7 +117,6 @@ def scraping_workflow():
         les resultats des taches
     """
     scraping_tasks = group(
-
         emploi_task.s(), rekrute_task.s(), bayt_task.s(), marocann_task.s()
     )
     workflow = chord(scraping_tasks)(scrape_upload.s())
