@@ -23,7 +23,17 @@ logger = setup_logger("maroc_ann.log")
 
 
 def extract_offers(driver: webdriver.Chrome):
-    """Extrait les offres sur la page actuelle du site."""
+    """
+    Extrait les offres d'emploi affichées sur la page actuelle de MarocAnnonces.
+
+    Récupère les informations de base des offres, comme le titre, l'URL et la région.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+
+    Returns:
+        list: Liste de dictionnaires contenant les informations de base des offres.
+    """
     offers = []
     try:
         holders = driver.find_elements(
@@ -54,7 +64,11 @@ def extract_offers(driver: webdriver.Chrome):
 
 
 def parse_details_text(text):
-    """Analyse et structure le texte de l'offre d'emploi."""
+    """
+    Analyse et structure le texte brut d'une offre d'emploi pour extraire ses détails.
+
+    Extrait des informations comme le titre, la date de publication, la description, et d'autres champs.
+    """ 
     details = {"via": "Maroc_annonces"}
     lines = [line.strip() for line in text.split("\n") if line.strip()]
     text_joined = "\n".join(lines)
@@ -116,7 +130,19 @@ def parse_details_text(text):
 
 
 def extract_offer_details(driver, offer_url):
-    """Accède à une offre et en extrait les détails."""
+    """
+    Accède à une offre spécifique sur MarocAnnonces et en extrait les détails complets.
+
+    Charge la page de l'offre et analyse son contenu pour extraire les informations détaillées.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+        offer_url (str): URL de l'offre d'emploi à extraire.
+
+    Returns:
+        dict: Dictionnaire contenant les détails de l'offre, ou un dictionnaire vide en cas d'erreur.
+    """
+
     try:
         driver.set_page_load_timeout(60)
         driver.get(offer_url)
@@ -135,7 +161,19 @@ def extract_offer_details(driver, offer_url):
 
 
 def change_page(driver, base_url, page_num):
-    """Navigue vers la page indiquée."""
+    """Navigue vers une page spécifique des résultats sur MarocAnnonces.
+
+    Charge la page indiquée et vérifie que les offres sont disponibles.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+        base_url (str): URL de base avec un placeholder pour le numéro de page.
+        page_num (int): Numéro de la page à charger.
+
+    Returns:
+        bool: True si la page est chargée avec succès, False sinon.
+    """
+    
     try:
         driver.get(base_url.format(page_num))
         WebDriverWait(driver, 15).until(
@@ -152,6 +190,17 @@ def change_page(driver, base_url, page_num):
 
 
 def main(logger=setup_logger("maroc_ann.log")):
+    """Exécute l'extraction des offres d'emploi sur MarocAnnonces.
+
+    Orchestre l'initialisation du WebDriver, la navigation sur MarocAnnonces, l'extraction des offres, et leur sauvegarde.
+
+    Args:
+        logger (logging.Logger, optional): Instance du logger pour enregistrer les événements. Par défaut utilise setup_logger("maroc_ann.log").
+
+    Returns:
+        list: Liste des nouvelles offres d'emploi extraites.
+    """
+
     try:
         driver = init_driver()
     except Exception as e:
