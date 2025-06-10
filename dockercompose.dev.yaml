@@ -90,7 +90,7 @@ services:
 
   postgres:
     image: postgres:latest
-    container_name: postgres_storage_server
+    container_name: postgres
     env_file:
       - .env
     volumes:
