@@ -1,87 +1,80 @@
-import os
-import json
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import os, json
 from dotenv import load_dotenv
 import pg8000.dbapi
 
-# === Chargement des variables d’environnement ===
+# --- Chargement des variables d’environnement ---
 load_dotenv()
-
-DB_USER = os.getenv("POSTGRES_USER", "root")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "root")
-DB_NAME = os.getenv("POSTGRES_DB", "offers")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT", 5430))
-
-# === Connexion PostgreSQL ===
 conn = pg8000.dbapi.connect(
-    user=DB_USER,
-    password=DB_PASSWORD,
-    database=DB_NAME,
-    host=DB_HOST,
-    port=DB_PORT
+    user     = os.getenv("POSTGRES_USER", "root"),
+    password = os.getenv("POSTGRES_PASSWORD", "root"),
+    database = os.getenv("POSTGRES_DB", "offers"),
+    host     = os.getenv("DB_HOST", "localhost"),
+    port     = int(os.getenv("DB_PORT", 5430))
 )
-cursor = conn.cursor()
+cur = conn.cursor()
 
-# === Fichier JSON source ===
-json_path = r"C:\Users\houss\Desktop\DXC\Job_market_research\mcd_output.json"
-with open(json_path, encoding="utf-8") as f:
-    data = json.load(f)
-
-# === Fonction d’insertion avec sécurité ===
-def insert_with_ignore(table, row, conflict_keys):
-    columns = list(row.keys())
-    values = [row[col] for col in columns]
-    placeholders = ", ".join(["%s"] * len(values))
-    conflict_clause = ", ".join(conflict_keys)
-
-    sql = f"""
-        INSERT INTO {table} ({', '.join(columns)})
-        VALUES ({placeholders})
-        ON CONFLICT ({conflict_clause}) DO NOTHING
+def insert_ignore(table, row, conflict_keys):
+    cols = list(row.keys())
+    vals = [row[c] for c in cols]
+    ph   = ", ".join(["%s"]*len(vals))
+    cc   = ", ".join(conflict_keys)
+    sql  = f"""
+        INSERT INTO public.{table} ({', '.join(cols)})
+        VALUES ({ph})
+        ON CONFLICT ({cc}) DO NOTHING;
     """
     try:
-        cursor.execute(sql, values)
+        cur.execute(sql, vals)
     except Exception as e:
         conn.rollback()
-        print(f"❌ Erreur dans {table}: {e} → {row}")
-        with open("insertion_errors.log", "a", encoding="utf-8") as f:
-            f.write(f"[{table}] {e}\n{row}\n\n")
+        print(f"❌ Erreur table public.{table}: {e}\nLigne: {row}")
 
-# === Insertion des dimensions ===
-for row in data["profiles"]:
-    insert_with_ignore("dim_profil", row, ["profile_id"])
+# --- Chargement du JSON transformé ---
+with open(r"C:\Users\houss\Desktop\DXC\Job_market_research\mcd_final.json", encoding="utf-8") as f:
+    data = json.load(f)
 
-for row in data["locations"]:
-    insert_with_ignore("dim_localisation", row, ["location_id"])
+# --- 1) Insert dimensions dans public.dim_* ---
+dim_mapping = {
+    "dim_contract":       ["contract_id"],
+    "dim_work_type":      ["work_type_id"],
+    "dim_location":       ["location_id"],
+    "dim_company":        ["company_id"],
+    "dim_profile":        ["profile_id"],
+    "dim_skill":          ["skill_id"],
+    "dim_sector":         ["sector_id"]
+}
 
-for row in data["salaries"]:
-    insert_with_ignore("dim_salaire", row, ["salary_id"])
+for table, pkeys in dim_mapping.items():
+    for row in data.get(table, []):
+        insert_ignore(table, row, pkeys)
 
-for row in data["soft_skills"]:
-    row["type_competence"] = "soft"
-    insert_with_ignore("dim_competence", row, ["skill_id", "type_competence"])
+# --- 2) Insert dans public.fact_offer ---
+for r in data.get("fact_offer", []):
+    row = {
+        "offer_id":         r["offer_id"],
+        "job_url":          r.get("job_url"),
+        "title":            r.get("titre"),
+        "publication_date": r.get("publication_date"),
+        "contract_id":      r.get("contract_id"),
+        "work_type_id":     r.get("work_type_id"),
+        "location_id":      r.get("location_id"),
+        "company_id":       r.get("company_id"),
+        "profile_id":       r.get("profile_id"),
+        "education_years":  r.get("education_years"),
+        "seniority":        r.get("seniority"),
+        "sector_id":        r.get("sector_id")
+    }
+    insert_ignore("fact_offer", row, ["offer_id"])
 
-for row in data["hard_skills"]:
-    row["type_competence"] = "hard"
-    insert_with_ignore("dim_competence", row, ["skill_id", "type_competence"])
+# --- 3) Insert dans public.fact_offer_skill ---
+for r in data.get("fact_offer_skill", []):
+    insert_ignore("fact_offer_skill", r, ["offer_id","skill_id"])
 
-# === Insertion des offres ===
-for row in data["offers"]:
-    cleaned_row = {k: (v if v is not None else None) for k, v in row.items()}
-    insert_with_ignore("fact_offre", cleaned_row, ["offer_id"])
-
-# === Insertion des compétences liées aux offres ===
-for row in data["offer_soft_skills"]:
-    row["niveau"] = "soft"
-    insert_with_ignore("fact_competence", row, ["offer_id", "skill_id"])
-
-for row in data["offer_hard_skills"]:
-    row["niveau"] = "hard"
-    insert_with_ignore("fact_competence", row, ["offer_id", "skill_id"])
-
-# === Commit et fermeture ===
+# --- Commit & fermeture ---
 conn.commit()
-cursor.close()
+cur.close()
 conn.close()
-
-print("✅ Insertion dans PostgreSQL terminée avec succès.")
+print("✅ Chargement terminé dans schema public.")  
