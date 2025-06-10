@@ -1,7 +1,7 @@
 import os
 import time
 
-from celery_app.tasks import web_scrape
+from celery_app.tasks import run_scraping_pipeline
 from data_extraction.Websites import init_driver
 
 print(f"The driver should be patched and put in {os.environ.get('CHROME_DRIVER_DIR')}")
@@ -12,4 +12,4 @@ time.sleep(15)
 patch_driver.quit()
 
 
-web_scrape.delay()
+run_scraping_pipeline.delay()

@@ -1,6 +1,7 @@
-from celery import Celery, group
+from celery import Celery, chord, group
 
 from data_extraction.Websites import MarocAnn, Rekrute, bayt, emploi
+from database import scraping_upload
 
 # Names the app "celery_app"
 app = Celery("celery_app")
@@ -97,19 +98,28 @@ def emploi_task(self):
         raise self.retry(exc=e)
 
 
-@app.task(name="web_scrape")
-def web_scrape():
-    """
+
+@app.task(name="scrape_upload")
+def scrape_upload(results):
+    print(f"Upload results of the web scraping: {results}")
+    scraping_upload()
+    return "Upload finished"
+
+
+@app.task(name="scraping_workflow")
+def scraping_workflow():
+  """
     Tâche Celery pour exécuter un groupe de tâches de scraping web.
 
     Lance les tâches emploi_task, rekrute_task, bayt_task et marocann_task en parallèle
     et affiche les résultats une fois toutes les tâches terminées.
 
     Returns:
-        None
+        les resultats des taches
     """
-    scrapers = group(
+    scraping_tasks = group(
+
         emploi_task.s(), rekrute_task.s(), bayt_task.s(), marocann_task.s()
     )
-    result = scrapers.apply_async()
-    return result
+    workflow = chord(scraping_tasks)(scrape_upload.s())
+    return workflow
