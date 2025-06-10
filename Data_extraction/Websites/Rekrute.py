@@ -20,6 +20,17 @@ logger = setup_logger("Rekrute.log")
 
 # --- Fonction d'extraction des offres sur la page courante ---
 def extract_offers(driver):
+    """Extrait les offres d'emploi affichées sur la page actuelle de Rekrute.
+
+    Récupère les informations détaillées des offres, comme le titre, l'URL, la description, et les compétences.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+
+    Returns:
+        list: Liste de dictionnaires contenant les informations des offres.
+ """
+
     try:
         data = load_json("offres_emploi_rekrute.json")
     except FileNotFoundError:
@@ -144,6 +155,11 @@ def extract_offers(driver):
 
 
 def access_rekrute(driver):
+    """Accède à la page de recherche de Rekrute et soumet une recherche pour 'DATA'.
+
+    Charge la page principale et effectue une recherche via la barre de recherche.
+    """ 
+    
     # Accéder à la page de base
     base_url = "https://www.rekrute.com/offres-emploi-maroc.html"
     driver.get(base_url)
@@ -157,6 +173,10 @@ def access_rekrute(driver):
 
 
 def get_pages_url(driver):
+    """Récupère les URLs des pages de résultats de recherche sur Rekrute.
+
+    Extrait les URLs de toutes les pages de pagination disponibles.
+    """
     try:
         # Sélecteur adapté pour la nouvelle structure
         pagination = WebDriverWait(driver, 15).until(
@@ -191,6 +211,10 @@ def get_pages_url(driver):
 
 
 def change_page(driver, page_url):
+    """Navigue vers une page spécifique des résultats sur Rekrute.
+
+    Charge la page indiquée et vérifie que les offres sont disponibles.
+    """
     if page_url:
         # Si l'URL est relative, on complète avec le domaine
         if not page_url.startswith("http"):
@@ -204,9 +228,16 @@ def change_page(driver, page_url):
 
 
 def main(logger=setup_logger("Rekrute.log")):
-    """Cette fonction permet de parcourir le site rekrute et d'en extraire les offres d'emploi.
-    L'utilisation par defaut recherche des offres liées au domaine de la Data.
-    """
+    """Exécute l'extraction des offres d'emploi sur Rekrute.
+
+    Orchestre l'initialisation du WebDriver, la navigation sur Rekrute, l'extraction des offres, et leur sauvegarde.
+
+    Args:
+        logger (logging.Logger, optional): Instance du logger pour enregistrer les événements. Par défaut utilise setup_logger("Rekrute.log").
+
+    Returns:
+        list: Liste des offres d'emploi extraites.
+"""
     try:
         driver = init_driver()
     except Exception as e:

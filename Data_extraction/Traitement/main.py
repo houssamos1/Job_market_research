@@ -16,6 +16,17 @@ logger = setup_logger("main.log")
 
 
 def execute_script(file_path):
+    """Exécute un script Python et extrait le nombre d'offres d'emploi à partir de sa sortie.
+
+    Lance le script spécifié via subprocess et parse sa sortie pour récupérer le nombre d'offres.
+
+    Args:
+        file_path (str): Chemin absolu du script Python à exécuter.
+
+    Returns:
+        int: Nombre d'offres extraites par le script, ou 0 en cas d'erreur.
+    """
+
     try:
         python_exe = (
             sys.executable
@@ -43,6 +54,13 @@ def execute_script(file_path):
 
 
 def run_data_extraction_scripts():
+    """Exécute tous les scripts d'extraction de données en parallèle et calcule le total des offres extraites.
+
+    Parcourt le répertoire des scripts, les exécute simultanément, et cumule le nombre d'offres extraites.
+
+    Returns:
+        int: Nombre total d'offres extraites par tous les scripts.
+    """
     total_offres = 0
     logger.info("Démarrage du processus d'extraction des données.")
     traitement_dir = os.path.dirname(__file__)
