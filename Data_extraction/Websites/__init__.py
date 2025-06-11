@@ -11,7 +11,23 @@ current_dir = os.path.dirname(current_path)
 
 
 def init_driver():
+
+    """
+    Initialise une instance de WebDriver Selenium pour la navigation web.
+
+    Configure un WebDriver en utilisant les variables d'environnement pour les chemins du navigateur et du driver.
+
+    Args:
+        Aucun
+
+    Returns:
+        uc.Chrome: Une instance de WebDriver configurée et prête à l'usage.
+    """
+    
     # Creation et configuration du Driver, pour pointer sur le driver changez le chemin executable_path
+
+    # Creation et configuration du Driver, pour pointer sur le driver changez le chemin chd
+
     chrome_path = os.getenv("CHROME_BIN")
     if not chrome_path:
         raise ValueError("CHROME_BIN environment variable not set or empty")
@@ -32,10 +48,9 @@ def init_driver():
         "--disable-dev-shm-usage"
     )  # évite les erreurs liées à /dev/shm
     chrome_options.add_argument("--disable-gpu")
-    # chrome_options.add_argument("--start-maximized") # Uniquement pour machine locale
     try:
         uc_patcher = uc.Patcher(
-            executable_path=os.path.join(chrome_driver_path, "undetected_chromedriver")
+            executable_path=os.path.join(chrome_driver_path, "chromedriver")
         )
         if not uc_patcher.is_binary_patched():
             uc_patcher.patch_exe()
@@ -43,16 +58,18 @@ def init_driver():
     except Exception as e:
         print(f"Exception during patching {e}")
 
+    patched_chrome_driver_path = os.path.join(
+        chrome_driver_path, "undetected_chromedriver"
+    )
     try:
         driver = uc.Chrome(
             browser_executable_path=chrome_path,
-            driver_executable_path=os.path.join(
-                chrome_driver_path, "undetected_chromedriver"
-            ),
+            driver_executable_path=patched_chrome_driver_path,
             options=chrome_options,
         )
     except FileNotFoundError:
         driver = uc.Chrome(browser_executable_path=chrome_path, options=chrome_options)
+        print(f"The patched executable wasnt found in: {patched_chrome_driver_path}")
     driver.implicitly_wait(
         10
     )  # Time before the program exits in case of exception in seconds, will not wait if the program runs normally
@@ -62,7 +79,23 @@ def init_driver():
 
 def highlight(
     element, effect_time=0.1, color="yellow", border="2px solid red", active=True
-):
+): 
+    """
+    Met en surbrillance un élément HTML sur une page web avec des styles personnalisables.
+
+    Applique une surbrillance visuelle à l'élément et le fait défiler dans la vue si activé.
+
+    Args:
+        element: L'élément WebElement Selenium à mettre en surbrillance.
+        effect_time (float, optional): Durée de la surbrillance en secondes. Par défaut 0.1.
+        color (str, optional): Couleur de fond pour la surbrillance. Par défaut "yellow".
+        border (str, optional): Style de bordure pour la surbrillance. Par défaut "2px solid red".
+        active (bool, optional): Indique si la surbrillance doit être appliquée. Par défaut True.
+
+    Returns:
+        None
+    """
+    
     if active:
         driver = element._parent
         original_style = element.get_attribute("style")
@@ -116,6 +149,7 @@ def highlight(
 
 
 def load_json(filename="default.json", encoding="utf-8"):
+    """Charge les données JSON d'un fichier ou crée un nouveau fichier s'il n'existe pas."""
     current_path = os.path.abspath(__file__)
     current_dir = os.path.dirname(current_path)  # Websites directory
     parent_dir = os.path.dirname(current_dir)  # Data extraction directory
@@ -132,14 +166,17 @@ def load_json(filename="default.json", encoding="utf-8"):
 
 def save_json(data: list, filename="default.json", output_directory="scraping_output"):
     """
-    Saves the json data to the specified file in the output directory. Note that if the same filename exists, the data will be apended instead of being overwritten
+    Sauvegarde une liste de données JSON dans un fichier, en fusionnant avec les données existantes.
 
-    data: list of items to be saved as json
+    Stocke les données dans un fichier et un répertoire spécifiés, en combinant avec le contenu existant.
 
-    filename: name of the file
+    Args:
+        data (list): La liste des données d'offres à sauvegarder.
+        filename (str, optional): Nom du fichier JSON de sortie. Par défaut "default.json".
+        output_directory (str, optional): Répertoire pour sauvegarder le fichier. Par défaut "scraping_output".
 
-    output_directory: the directory where all json outputs are stored
-
+    Returns:
+        None
     """
     # --- Sauvegarde locale en JSON (pour vérification) --
 
@@ -177,23 +214,31 @@ def validate_json(
         os.path.dirname(os.path.abspath(__file__)), "Job_schema.json"
     ),
 ):
-    """Validates the json data according to the schema provided in arguments"""
-    with open(schema_path) as f:
+   """
+   Valide des données JSON par rapport à un schéma spécifié.
+
+    Vérifie si les données d'entrée respectent le schéma chargé à partir d'un fichier.
+
+    Args:
+        data: Les données JSON à valider.
+        schema_path (str, optional): Chemin vers le fichier de schéma. Par défaut "Job_schema.json" dans le répertoire du script.
+
+    Returns:
+        None
+    """
+   
+   with open(schema_path) as f:
         schema = json.load(f)
-    try:
+   try:
         validate(data, schema)
-    except ValidationError as e:
+   except ValidationError as e:
         logging.error(f"Validation error: {e.message}")
         return e
 
 
 def check_duplicate(data, job_url):
-    """A function to check if a job offer is already present in the old data. Returns true if there is a duplicate offer found
-
-    data: the old job offers data
-
-    job_url: the current job_url to be matched
-    """
+    """Vérifie si une URL d'offre existe déjà dans les données pour éviter les doublons."""
+    
     # Check if the job URL already exists in the data
     for job in data[:][:]:
         if job.get("job_url") == job_url:
@@ -204,25 +249,40 @@ def check_duplicate(data, job_url):
 
 # Set up a logger
 def setup_logger(filename="app.log", level=logging.INFO):
-    """A custom logger function for the web scrapers. By default the logging level is INFO.
-
-    filename: the desired name for the log file
-
-    level: the level of logging to be printed out, includes INFO-DEBUG-ERROR
     """
+    Configure un logger pour écrire dans un fichier et sur la console.
+
+    Crée une instance de logger qui écrit dans un fichier et sur la console avec un niveau spécifié.
+
+    Args:
+        filename (str, optional): Nom du fichier de log. Par défaut "app.log".
+        level (int, optional): Niveau de logging (ex. logging.INFO). Par défaut logging.INFO.
+
+    Returns:
+        logging.Logger: Une instance de logger configurée.
+    """
+
     logger = logging.getLogger("my_logger")
     logger.propagate = False  # Disable propagation to root logger
     # Defining the file path
-    current_path = os.path.abspath(__file__)
-    current_dir = os.path.dirname(current_path)
-    log_folder = os.path.join(current_dir, "log")
-    log_file = os.path.join(log_folder, filename)
-    # create the log folder if not found
-    os.makedirs(log_folder, exist_ok=True)
-    # create the log file if not found
-    if not os.path.exists(log_file):
-        open(log_file, "w")
-        pass
+    try:
+        log_folder = os.environ.get("LOG_DIR")
+        log_file = os.path.join(log_folder, filename)
+        if not os.path.exists(log_file):
+            open(log_file, "w")
+            pass
+    except Exception:
+        print("Exception during search for log folder")
+        current_path = os.path.abspath(__file__)
+        current_dir = os.path.dirname(current_path)
+        log_folder = os.path.join(current_dir, "log")
+        log_file = os.path.join(log_folder, filename)
+        # create the log folder if not found
+        os.makedirs(log_folder, exist_ok=True)
+        # create the log file if not found
+        if not os.path.exists(log_file):
+            open(log_file, "w")
+            pass
     if not logger.hasHandlers():
         # Set the default logging configuration
         file_handler = logging.FileHandler(log_file)  # Log to a file
@@ -236,7 +296,7 @@ def setup_logger(filename="app.log", level=logging.INFO):
         console_handler.setFormatter(formatter)
         # Add the handlers to the logger
         logger.addHandler(file_handler)
-        logger.addHandler(console_handler)  # Adds logging to console (stdout)
+        # logger.addHandler(console_handler)  # Adds logging to console (stdout)
         logger.setLevel(level)
 
     return logger

@@ -28,6 +28,18 @@ logger = setup_logger("bayt.log")
 
 
 def extract_date_from_text(text: str):
+    """
+    Convertit un texte de durée relative en une date au format DD-MM-YYYY.
+
+    Transforme une chaîne comme "3 days ago" ou "yesterday" en une date calculée à partir de la date actuelle.
+
+    Args:
+        text (str): Texte représentant une durée relative (ex. "yesterday", "3 days ago").
+
+    Returns:
+        str: Date au format "DD-MM-YYYY", ou None si le format n'est pas reconnu.
+
+    """
     try:
         text = text.lower().strip()
         # Chechking for string "yesterday"
@@ -56,6 +68,7 @@ def extract_date_from_text(text: str):
 
 
 def normalize_header(header, header_keywords):
+    """Normalise un en-tête en le comparant à des mots-clés prédéfinis."""
     header = header.lower().strip()
     for norm, variations in header_keywords.items():
         if any(header.startswith(v) for v in variations):
@@ -64,6 +77,17 @@ def normalize_header(header, header_keywords):
 
 
 def text_segmentation(job_offer_details):
+    """
+    Segmente un texte d'offre d'emploi en sections basées sur des en-têtes.
+
+    Divise le texte en sections comme "description" ou "compétences" en utilisant des en-têtes prédéfinis.
+
+    Args:
+        job_offer_details (str): Texte contenant les détails de l'offre d'emploi.
+
+    Returns:
+        dict: Dictionnaire avec les sections segmentées (ex. {"intro": ..., "description": ..., "compétences": ...}).
+    """
     # headers
     header_keywords = {
         "description": ["Job description", "job description", "description"],
@@ -90,6 +114,11 @@ def text_segmentation(job_offer_details):
 
 
 def access_bayt(driver: webdriver.Chrome):
+    """
+    Accède à Bayt.com et effectue une recherche pour le mot-clé 'DATA'.
+
+    Charge la page principale et soumet une recherche via la barre de recherche.
+    """
     # Accéder à la page de base
     base_url = "https://www.bayt.com/en/morocco/"
     driver.get(base_url)
@@ -103,6 +132,17 @@ def access_bayt(driver: webdriver.Chrome):
 
 
 def extract_job_info(driver: webdriver.Chrome):
+    """
+    Extrait les informations des offres d'emploi depuis une page de résultats Bayt.com.
+
+    Récupère les URLs des offres, extrait leurs détails, et valide les données extraites.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+
+    Returns:
+        list: Liste des offres d'emploi sous forme de dictionnaires.
+    """
     try:
         data = load_json("offres_emploi_bayt.json")
     except FileNotFoundError:
@@ -156,6 +196,16 @@ def extract_job_info(driver: webdriver.Chrome):
 
 
 def extract_job_details(driver: webdriver.Chrome):
+    """Extrait les détails d'une offre d'emploi spécifique depuis sa page.
+
+    Récupère des informations comme le titre, la date de publication, l'entreprise et les détails segmentés.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+
+    Returns:
+        dict: Dictionnaire contenant les détails de l'offre (ex. {"titre": ..., "publication_date": ..., "companie": ...}).
+    """
     try:
         titre = driver.find_element(By.CSS_SELECTOR, 'h1[id="job_title"]').text.strip()
 
@@ -202,6 +252,16 @@ def extract_job_details(driver: webdriver.Chrome):
 
 
 def find_number_of_pages(driver: webdriver.Chrome):
+    """Détermine le nombre total de pages de résultats sur Bayt.com.
+
+    Extrait le numéro de la dernière page à partir des liens de pagination.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+
+    Returns:
+        int: Nombre total de pages, ou None si introuvable.
+    """
     try:
         num_of_pages = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located(
@@ -218,6 +278,19 @@ def find_number_of_pages(driver: webdriver.Chrome):
 def change_page(
     driver: webdriver.Chrome, main_page: str, current_page: int, max_pages: int
 ):
+    """Passe à une page spécifique des résultats sur Bayt.com.
+
+    Navigue vers la page suivante si elle existe dans les limites du nombre maximum de pages.
+
+    Args:
+        driver (webdriver.Chrome): Instance du WebDriver Selenium pour la navigation.
+        main_page (str): URL de base de la page de recherche.
+        current_page (int): Numéro de la page actuelle.
+        max_pages (int): Nombre maximum de pages à parcourir.
+
+    Returns:
+        bool: True si la page a été chargée avec succès, False sinon.
+    """
     try:
         next_page = main_page + "?page=" + str(current_page)
         logger.info(f"Next page: {next_page}")
@@ -238,6 +311,16 @@ def change_page(
 
 
 def main(logger=setup_logger("bayt.log")):
+    """Exécute l'extraction des offres d'emploi sur Bayt.com.
+
+    Orchestre l'initialisation du WebDriver, la navigation sur Bayt.com, l'extraction des offres, et leur sauvegarde.
+
+    Args:
+        logger (logging.Logger, optional): Instance du logger pour enregistrer les événements. Par défaut utilise setup_logger("bayt.log").
+
+    Returns:
+        list: Liste des offres d'emploi extraites.
+    """
     try:
         driver = init_driver()
     except Exception as e:

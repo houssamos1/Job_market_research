@@ -1,7 +1,6 @@
-# -----------------------------------------------------------
-# Stage 1: Build de l’environnement Python (installation de uv + dépendances)
-# -----------------------------------------------------------
-FROM python:3.12.10-slim-bullseye AS builder
+
+# Stage 1: Installing uv and the project dependencies
+FROM python:3.10-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -23,8 +22,9 @@ RUN python -m venv .venv
 # 4. Copier uniquement les fichiers de config Python (pour maximiser le cache Docker)
 COPY pyproject.toml uv.lock ./
 
-# 5. Installer les dépendances Python avec uv (commande uv sync)
-RUN uv sync
+
+# Stage 2: Final image with Chrome only (no ChromeDriver)
+FROM python:3.10-slim-bookworm AS celery_setup
 
 # -----------------------------------------------------------
 # Stage 2: Image finale pour Celery (avec Chrome + Chromedriver)
@@ -57,19 +57,28 @@ RUN apt-get update \
     && unzip chrome-linux64.zip -d /opt/ \
     && mv /opt/chrome-linux64 /opt/chrome \
     && chmod +x /opt/chrome/chrome \
-    && rm chrome-linux64.zip \
-    \
-    && wget -q https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip \
+
+    && rm chrome-linux64.zip
+# Creation du dossier pour le chromedriver
+
+
+RUN mkdir -p /home/celery_user/.local/share/undetected_chromedriver \
+ && chown -R celery_user:celery_group /home/celery_user/.local \
+ && chmod -R u+rw /home/celery_user/.local
+
+# Téléchargement automatique de la dernière version stable de Chromedriver
+RUN CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json \
+    | jq -r '.channels.Stable.version') \
+    && wget  https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip \
+
     && unzip chromedriver-linux64.zip -d /tmp \
     && mkdir -p /home/celery_user/.local/share/undetected_chromedriver \
     && mv /tmp/chromedriver-linux64/chromedriver /home/celery_user/.local/share/undetected_chromedriver/ \
     && chmod +x /home/celery_user/.local/share/undetected_chromedriver/chromedriver \
     && rm -rf /tmp/chromedriver-linux64 chromedriver-linux64.zip
 
-# 4. Créer et donner les droits pour le dossier de logs
-RUN mkdir -p /app/data_extraction/Websites/log \
-    && chown -R celery_user:celery_group /app/data_extraction/Websites/log \
-    && chmod -R 777 /app/data_extraction/Websites/log
+RUN chown celery_user:celery_group /home/celery_user/.local/share/undetected_chromedriver/chromedriver \
+&& chmod u+rw /home/celery_user/.local/share/undetected_chromedriver/chromedriver
 
 # 5. Copier tout le code de l’application (celery_app et data_extraction seront écrasés par les volumes Compose)
 COPY --chown=celery_user:celery_group . /app
