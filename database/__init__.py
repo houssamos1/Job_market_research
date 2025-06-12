@@ -3,14 +3,16 @@ import os
 from minio import Minio, S3Error
 
 
-def start_client() -> Minio:
+def start_client(
+    MINIO_URL=os.environ.get("MINIO_API"),
+    ACCESS_KEY=os.environ.get("MINIO_ROOT_USER"),
+    SECRET_KEY=os.environ.get("MINIO_ROOT_PASSWORD"),
+) -> Minio:
     """This function simply connects to the minio server and returns a client instance.
 
     It is supposed to be used in other modules to create and maintain connections to the Object sotrage server
     """
-    MINIO_URL = os.environ.get("MINIO_API")
-    ACCESS_KEY = os.environ.get("MINIO_ROOT_USER")
-    SECRET_KEY = os.environ.get("MINIO_ROOT_PASSWORD")
+
     # --- Connexion à MinIO ---
     client = Minio(
         MINIO_URL, access_key=ACCESS_KEY, secret_key=SECRET_KEY, secure=False
