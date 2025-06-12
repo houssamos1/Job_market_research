@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  spark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spark-container
+    volumes:
+      - .:/opt/workspace
+    command: [ "spark-submit", "script.py" ]
