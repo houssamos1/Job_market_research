@@ -1,7 +1,7 @@
 
 *.exe
 *.chromedriver
-
+*.ipynb
 /.venv/
 /venv/
 /.env
