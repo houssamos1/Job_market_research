@@ -127,8 +127,3 @@ volumes:
   logs:
   output:
   postgres_data:
-
-networks:
-  default:
-    driver: bridge
-    name: job_analytics_network
