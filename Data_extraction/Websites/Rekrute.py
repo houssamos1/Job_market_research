@@ -29,7 +29,7 @@ def extract_offers(driver):
 
     Returns:
         list: Liste de dictionnaires contenant les informations des offres.
- """
+    """
 
     try:
         data = load_json("offres_emploi_rekrute.json")
@@ -158,8 +158,8 @@ def access_rekrute(driver):
     """Accède à la page de recherche de Rekrute et soumet une recherche pour 'DATA'.
 
     Charge la page principale et effectue une recherche via la barre de recherche.
-    """ 
-    
+    """
+
     # Accéder à la page de base
     base_url = "https://www.rekrute.com/offres-emploi-maroc.html"
     driver.get(base_url)
@@ -227,7 +227,7 @@ def change_page(driver, page_url):
         )
 
 
-def main(logger=setup_logger("Rekrute.log")):
+def main(logger=setup_logger("Rekrute.log"), driver=init_driver()):
     """Exécute l'extraction des offres d'emploi sur Rekrute.
 
     Orchestre l'initialisation du WebDriver, la navigation sur Rekrute, l'extraction des offres, et leur sauvegarde.
@@ -237,11 +237,7 @@ def main(logger=setup_logger("Rekrute.log")):
 
     Returns:
         list: Liste des offres d'emploi extraites.
-"""
-    try:
-        driver = init_driver()
-    except Exception as e:
-        logger.exception(f"Couldn't start the driver {e}")
+    """
 
     start_time = time.time()
     logger.info("Début de l'extraction des offres d'emploi sur Rekrute")

@@ -25,6 +25,7 @@ services:
       dockerfile: Dockerfile
     image: app_worker
     container_name: celery_container
+
     command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
     depends_on:
       - redis
@@ -35,9 +36,9 @@ services:
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
     env_file:
-      - .env
-
-
+      - .docker.env
+    environment:
+      - PYTHONPATH=/app
 
   flower:
 
@@ -66,14 +67,15 @@ services:
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
-
     depends_on:
       - redis
       - celery
     user: celery_user
     command: ["python", "/app/data_extraction/web_scrape.py"]
     env_file:
-      - .env
+      - .docker.env
+    environment:
+      - PYTHONPATH=/app
   minio:
     image: minio/minio
 
@@ -81,41 +83,42 @@ services:
     volumes:
       - minio_data:/data
     ports:
-
       - 9000:9000
       - 9080:9080
 
     env_file:
-      - .env
+      - .docker.env
     command: ["minio","server",'--console-address',":9080","/data"]
-
 
   postgres:
     image: postgres:latest
-   
+
     ports:
       - "5432:5432"
 
     container_name: postgres
 
     env_file:
-      - .env
+      - .docker.env
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d 
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-
-    
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+    - 8080:8080
 
 volumes:
   redis_data:
@@ -123,8 +126,3 @@ volumes:
   logs:
   output:
   postgres_data:
- 
-networks:
-  default:
-    driver: bridge
-    name: job_analytics_network

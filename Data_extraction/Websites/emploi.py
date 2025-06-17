@@ -53,7 +53,7 @@ def get_number_pages(driver: webdriver.Chrome):
         return 1
 
 
-def main(logger=setup_logger("emploi.log")):
+def main(logger=setup_logger("emploi.log"), driver=init_driver()):
     """Exécute l'extraction des offres d'emploi sur emploi.ma.
 
     Orchestre l'initialisation du WebDriver, la navigation sur emploi.ma, l'extraction des offres, et leur sauvegarde.
@@ -64,11 +64,6 @@ def main(logger=setup_logger("emploi.log")):
     Returns:
         list: Liste des nouvelles offres d'emploi extraites.
     """
-    # Initialisation du driver
-    try:
-        driver = init_driver()
-    except Exception as e:
-        logger.exception(f"Couldn't start the driver {e}")
 
     try:
         access_emploi(driver)
