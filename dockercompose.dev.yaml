@@ -25,7 +25,7 @@ services:
       dockerfile: Dockerfile
     image: app_worker
     container_name: celery_container
-    command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
+    command: [ "celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E" ]
     depends_on:
       - redis
     user: celery_user
@@ -37,15 +37,13 @@ services:
     env_file:
       - .env
 
-
-
   flower:
 
     image: app_worker
     container_name: flower_container
     ports:
       - "5555:5555"
-    command: ["celery", "-A", "celery_app.tasks", "flower", "--port=5555","--loglevel=info"]
+    command: [ "celery", "-A", "celery_app.tasks", "flower", "--port=5555", "--loglevel=info" ]
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
@@ -71,7 +69,7 @@ services:
       - redis
       - celery
     user: celery_user
-    command: ["python", "/app/data_extraction/web_scrape.py"]
+    command: [ "python", "/app/data_extraction/web_scrape.py" ]
     env_file:
       - .env
   minio:
@@ -87,12 +85,11 @@ services:
 
     env_file:
       - .env
-    command: ["minio","server",'--console-address',":9080","/data"]
-
+    command: [ "minio", "server", '--console-address', ":9080", "/data" ]
 
   postgres:
     image: postgres:latest
-   
+
     ports:
       - "5432:5432"
 
@@ -106,16 +103,28 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d 
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  spark_transform:
+    build:
+      context: ./spark_pipeline
+      dockerfile: Dockerfile.spark
+    container_name: spark_transform
+    depends_on:
+      - minio
+      - postgres
+    command: ["spark-submit", "/opt/transform_job.py"]
+    env_file:
+      - .env
+    volumes:
+    - ./spark_pipeline/transform_job.py:/opt/transform_job.py
 
-    
 
 volumes:
   redis_data:
@@ -123,7 +132,8 @@ volumes:
   logs:
   output:
   postgres_data:
- 
+
+
 networks:
   default:
     driver: bridge
