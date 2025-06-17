@@ -23,9 +23,6 @@ RUN python -m venv .venv
 COPY pyproject.toml uv.lock ./
 
 
-# Stage 2: Final image with Chrome only (no ChromeDriver)
-FROM python:3.10-slim-bookworm AS celery_setup
-
 # -----------------------------------------------------------
 # Stage 2: Image finale pour Celery (avec Chrome + Chromedriver)
 # -----------------------------------------------------------
@@ -57,7 +54,6 @@ RUN apt-get update \
     && unzip chrome-linux64.zip -d /opt/ \
     && mv /opt/chrome-linux64 /opt/chrome \
     && chmod +x /opt/chrome/chrome \
-
     && rm chrome-linux64.zip
 # Creation du dossier pour le chromedriver
 
@@ -70,7 +66,6 @@ RUN mkdir -p /home/celery_user/.local/share/undetected_chromedriver \
 RUN CHROME_VERSION=$(curl -s https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json \
     | jq -r '.channels.Stable.version') \
     && wget  https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip \
-
     && unzip chromedriver-linux64.zip -d /tmp \
     && mkdir -p /home/celery_user/.local/share/undetected_chromedriver \
     && mv /tmp/chromedriver-linux64/chromedriver /home/celery_user/.local/share/undetected_chromedriver/ \
