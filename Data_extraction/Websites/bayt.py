@@ -310,7 +310,7 @@ def change_page(
         return False
 
 
-def main(logger=setup_logger("bayt.log")):
+def main(logger=setup_logger("bayt.log"), driver=init_driver()):
     """Exécute l'extraction des offres d'emploi sur Bayt.com.
 
     Orchestre l'initialisation du WebDriver, la navigation sur Bayt.com, l'extraction des offres, et leur sauvegarde.
@@ -321,10 +321,7 @@ def main(logger=setup_logger("bayt.log")):
     Returns:
         list: Liste des offres d'emploi extraites.
     """
-    try:
-        driver = init_driver()
-    except Exception as e:
-        logger.exception(f"Couldn't start the driver {e}")
+
     start_time = time.time()
     logger.info("Début de l'extraction des offres d'emploi sur Bayt.com")
     # Initialiser le driver

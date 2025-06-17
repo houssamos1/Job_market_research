@@ -123,5 +123,5 @@ def scraping_workflow():
         emploi_task.s(), rekrute_task.s(), bayt_task.s(), marocann_task.s()
     )
     workflow = chord(scraping_tasks)(scrape_upload.s())
-    scrape_upload(workflow)
-    return workflow
+
+    print(f"Scraping workflow ended successfully with result: {workflow.get()}")

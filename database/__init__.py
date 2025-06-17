@@ -59,6 +59,10 @@ def read_from_minio(
 
 def scraping_upload(scraping_dir="/app/data_extraction/scraping_output"):
     try:
+        make_buckets()
+    except Exception:
+        print("Couldn't setup the initial buckets")
+    try:
         scraping_files = os.listdir(scraping_dir)
 
         for file in scraping_files:

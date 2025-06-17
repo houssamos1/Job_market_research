@@ -25,6 +25,7 @@ services:
       dockerfile: Dockerfile
     image: app_worker
     container_name: celery_container
+
     command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
     depends_on:
       - redis
@@ -38,8 +39,6 @@ services:
       - .docker.env
     environment:
       - PYTHONPATH=/app
-
-
 
   flower:
 
@@ -68,7 +67,6 @@ services:
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
-
     depends_on:
       - redis
       - celery
@@ -85,14 +83,12 @@ services:
     volumes:
       - minio_data:/data
     ports:
-
       - 9000:9000
       - 9080:9080
 
     env_file:
       - .docker.env
     command: ["minio","server",'--console-address',":9080","/data"]
-
 
   postgres:
     image: postgres:latest
@@ -117,9 +113,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-
-
 
 volumes:
   redis_data:
