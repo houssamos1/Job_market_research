@@ -68,7 +68,7 @@ def parse_details_text(text):
     Analyse et structure le texte brut d'une offre d'emploi pour extraire ses détails.
 
     Extrait des informations comme le titre, la date de publication, la description, et d'autres champs.
-    """ 
+    """
     details = {"via": "Maroc_annonces"}
     lines = [line.strip() for line in text.split("\n") if line.strip()]
     text_joined = "\n".join(lines)
@@ -92,9 +92,9 @@ def parse_details_text(text):
     missions = extract_block(r"Missions\s*:\s*\n(.*?)\nProfil requis\s*:")
     profil = extract_block(r"Profil requis\s*:\s*\n(.*?)(Domaine\s*:|$)")
 
-    details["extra"] = [
+    details["extra"] = ", ".join(
         item.strip("- ").strip() for item in missions + profil if item.strip()
-    ]
+    )
 
     fields = [
         "Domaine",
@@ -122,9 +122,9 @@ def parse_details_text(text):
     telephone = get_next_line_value("Téléphone :")
 
     if annonceur:
-        details["extra"].append(annonceur)
+        details["extra"] += f", {annonceur}"
     if telephone:
-        details["extra"].append(telephone)
+        details["extra"] += f", {telephone}"
 
     return details
 
@@ -173,7 +173,7 @@ def change_page(driver, base_url, page_num):
     Returns:
         bool: True si la page est chargée avec succès, False sinon.
     """
-    
+
     try:
         driver.get(base_url.format(page_num))
         WebDriverWait(driver, 15).until(
@@ -189,7 +189,7 @@ def change_page(driver, base_url, page_num):
         return False
 
 
-def main(logger=setup_logger("maroc_ann.log")):
+def main(logger=setup_logger("maroc_ann.log"), driver=init_driver()):
     """Exécute l'extraction des offres d'emploi sur MarocAnnonces.
 
     Orchestre l'initialisation du WebDriver, la navigation sur MarocAnnonces, l'extraction des offres, et leur sauvegarde.
@@ -200,11 +200,6 @@ def main(logger=setup_logger("maroc_ann.log")):
     Returns:
         list: Liste des nouvelles offres d'emploi extraites.
     """
-
-    try:
-        driver = init_driver()
-    except Exception as e:
-        logger.exception(f"Couldn't start the driver {e}")
 
     old_data = load_json("offres_marocannonces.json")
     all_offers, new_data = [], []

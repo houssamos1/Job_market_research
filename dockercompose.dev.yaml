@@ -25,7 +25,8 @@ services:
       dockerfile: Dockerfile
     image: app_worker
     container_name: celery_container
-    command: [ "celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E" ]
+
+    command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
     depends_on:
       - redis
     user: celery_user
@@ -35,7 +36,9 @@ services:
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
     env_file:
-      - .env
+      - .docker.env
+    environment:
+      - PYTHONPATH=/app
 
   flower:
 
@@ -64,14 +67,15 @@ services:
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
-
     depends_on:
       - redis
       - celery
     user: celery_user
     command: [ "python", "/app/data_extraction/web_scrape.py" ]
     env_file:
-      - .env
+      - .docker.env
+    environment:
+      - PYTHONPATH=/app
   minio:
     image: minio/minio
 
@@ -79,13 +83,12 @@ services:
     volumes:
       - minio_data:/data
     ports:
-
       - 9000:9000
       - 9080:9080
 
     env_file:
-      - .env
-    command: [ "minio", "server", '--console-address', ":9080", "/data" ]
+      - .docker.env
+    command: ["minio","server",'--console-address',":9080","/data"]
 
   postgres:
     image: postgres:latest
@@ -96,7 +99,7 @@ services:
     container_name: postgres
 
     env_file:
-      - .env
+      - .docker.env
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -110,21 +113,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  spark_transform:
-    build:
-      context: ./spark_pipeline
-      dockerfile: Dockerfile.spark
-    container_name: spark_transform
-    depends_on:
-      - minio
-      - postgres
-    command: ["spark-submit", "/opt/transform_job.py"]
-    env_file:
-      - .env
-    volumes:
-    - ./spark_pipeline/transform_job.py:/opt/transform_job.py
-
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+    - 8080:8080
 
 volumes:
   redis_data:
@@ -132,9 +126,3 @@ volumes:
   logs:
   output:
   postgres_data:
-
-
-networks:
-  default:
-    driver: bridge
-    name: job_analytics_network
