@@ -46,7 +46,7 @@ services:
     container_name: flower_container
     ports:
       - "5555:5555"
-    command: ["celery", "-A", "celery_app.tasks", "flower", "--port=5555","--loglevel=info"]
+    command: [ "celery", "-A", "celery_app.tasks", "flower", "--port=5555", "--loglevel=info" ]
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
@@ -71,7 +71,7 @@ services:
       - redis
       - celery
     user: celery_user
-    command: ["python", "/app/data_extraction/web_scrape.py"]
+    command: [ "python", "/app/data_extraction/web_scrape.py" ]
     env_file:
       - .docker.env
     environment:
@@ -94,7 +94,7 @@ services:
     image: postgres:latest
 
     ports:
-      - "5432:5432"
+      - "5430:5432"
 
     container_name: postgres
 
@@ -109,7 +109,7 @@ services:
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5

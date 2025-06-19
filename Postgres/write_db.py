@@ -1,80 +1,169 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, json
+import os
+import json
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
-import pg8000.dbapi
+import pg8000
 
-# --- Chargement des variables d’environnement ---
+# Charger les variables d'environnement
 load_dotenv()
-conn = pg8000.dbapi.connect(
-    user     = os.getenv("POSTGRES_USER", "root"),
-    password = os.getenv("POSTGRES_PASSWORD", "root"),
-    database = os.getenv("POSTGRES_DB", "offers"),
-    host     = os.getenv("DB_HOST", "localhost"),
-    port     = int(os.getenv("DB_PORT", 5430))
-)
-cur = conn.cursor()
-
-def insert_ignore(table, row, conflict_keys):
-    cols = list(row.keys())
-    vals = [row[c] for c in cols]
-    ph   = ", ".join(["%s"]*len(vals))
-    cc   = ", ".join(conflict_keys)
-    sql  = f"""
-        INSERT INTO public.{table} ({', '.join(cols)})
-        VALUES ({ph})
-        ON CONFLICT ({cc}) DO NOTHING;
-    """
-    try:
-        cur.execute(sql, vals)
-    except Exception as e:
-        conn.rollback()
-        print(f"❌ Erreur table public.{table}: {e}\nLigne: {row}")
-
-# --- Chargement du JSON transformé ---
-with open(r"C:\Users\houss\Desktop\DXC\Job_market_research\mcd_final.json", encoding="utf-8") as f:
-    data = json.load(f)
-
-# --- 1) Insert dimensions dans public.dim_* ---
-dim_mapping = {
-    "dim_contract":       ["contract_id"],
-    "dim_work_type":      ["work_type_id"],
-    "dim_location":       ["location_id"],
-    "dim_company":        ["company_id"],
-    "dim_profile":        ["profile_id"],
-    "dim_skill":          ["skill_id"],
-    "dim_sector":         ["sector_id"]
+DB_CONFIG = {
+    "user":     os.getenv("POSTGRES_USER"),
+    "password": os.getenv("POSTGRES_PASSWORD"),
+    "database": os.getenv("POSTGRES_DB"),
+    "host":     os.getenv("DB_HOST"),
+    "port":     int(os.getenv("DB_PORT"))
 }
 
-for table, pkeys in dim_mapping.items():
-    for row in data.get(table, []):
-        insert_ignore(table, row, pkeys)
+counters = {
+    'dim_calendar': 0, 'dim_contract': 0, 'dim_work_type': 0, 'dim_location': 0,
+    'dim_company': 0, 'dim_profile': 0, 'dim_skill': 0, 'dim_sector': 0,
+    'dim_education': 0, 'dim_experience': 0,
+    'fact_offer': 0, 'fact_offer_skill': 0
+}
 
-# --- 2) Insert dans public.fact_offer ---
-for r in data.get("fact_offer", []):
-    row = {
-        "offer_id":         r["offer_id"],
-        "job_url":          r.get("job_url"),
-        "title":            r.get("titre"),
-        "publication_date": r.get("publication_date"),
-        "contract_id":      r.get("contract_id"),
-        "work_type_id":     r.get("work_type_id"),
-        "location_id":      r.get("location_id"),
-        "company_id":       r.get("company_id"),
-        "profile_id":       r.get("profile_id"),
-        "education_years":  r.get("education_years"),
-        "seniority":        r.get("seniority"),
-        "sector_id":        r.get("sector_id")
-    }
-    insert_ignore("fact_offer", row, ["offer_id"])
+def connect_db():
+    return pg8000.connect(**DB_CONFIG)
 
-# --- 3) Insert dans public.fact_offer_skill ---
-for r in data.get("fact_offer_skill", []):
-    insert_ignore("fact_offer_skill", r, ["offer_id","skill_id"])
+def get_or_create(cur, tbl, col_values: dict, counter_key, pk_col=None):
+    if not any(col_values.values()):
+        return None
+    pk_col = pk_col or f"{tbl.split('.')[-1][4:]}_id"
+    where_clause = " AND ".join([f"{col} = %s" for col in col_values])
+    values = list(col_values.values())
+    cur.execute(f"SELECT {pk_col} FROM {tbl} WHERE {where_clause}", values)
+    r = cur.fetchone()
+    if r:
+        return r[0]
+    cols = ", ".join(col_values.keys())
+    placeholders = ", ".join(["%s"] * len(col_values))
+    cur.execute(
+        f"INSERT INTO {tbl} ({cols}) VALUES ({placeholders}) RETURNING {pk_col}",
+        values
+    )
+    new_id = cur.fetchone()[0]
+    counters[counter_key] += 1
+    return new_id
 
-# --- Commit & fermeture ---
-conn.commit()
-cur.close()
-conn.close()
-print("✅ Chargement terminé dans schema public.")  
+def get_or_create_dim(cur, table, col, value):
+    return get_or_create(cur, f"public.dim_{table}", {col: value}, f"dim_{table}")
+
+def get_or_create_skill(cur, skill, skill_type):
+    if not skill:
+        return None
+    return get_or_create(
+        cur,
+        "public.dim_skill",
+        {"skill": skill, "skill_type": skill_type},
+        "dim_skill"
+    )
+
+def populate_calendar(cur, offers):
+    dates = [datetime.fromisoformat(o["publication_date"]).date() for o in offers if o.get("publication_date")]
+    if not dates:
+        return
+    start, end = min(dates), max(dates)
+    for i in range((end - start).days + 1):
+        d = start + timedelta(days=i)
+        cur.execute("SELECT 1 FROM public.dim_calendar WHERE date_id = %s", (d,))
+        if cur.fetchone():
+            continue
+        values = {
+            "date_id": d,
+            "year": d.year,
+            "quarter": (d.month - 1) // 3 + 1,
+            "month_number": d.month,
+            "month_name": d.strftime("%B"),
+            "day": d.day,
+            "year_month": d.strftime("%Y-%m"),
+            "day_of_week": d.isoweekday(),
+            "week_of_year": int(d.strftime("%V")),
+            "date_str": d.strftime("%d/%m/%Y")
+        }
+        get_or_create(cur, "public.dim_calendar", values, "dim_calendar", pk_col="date_id")
+
+def enrich_db(json_path):
+    with open(json_path, "r", encoding="utf-8") as f:
+        offers = json.load(f)
+
+    conn = connect_db()
+    cur = conn.cursor()
+    populate_calendar(cur, offers)
+    conn.commit()
+
+    for o in offers:
+        pub_date = datetime.fromisoformat(o["publication_date"]).date() if o.get("publication_date") else None
+
+        contract_id   = get_or_create_dim(cur, "contract", "contract_type", o.get("contrat"))
+        work_type_id  = get_or_create_dim(cur, "work_type", "work_type", o.get("type_travail"))
+        company_id    = get_or_create_dim(cur, "company", "company_name", o.get("company_name"))
+        profile_id    = get_or_create_dim(cur, "profile", "profile", o.get("profile"))
+        education_id  = get_or_create_dim(cur, "education", "education_level", o.get("education_level"))
+        experience_id = get_or_create_dim(cur, "experience", "seniority", o.get("seniority"))
+
+        loc = o.get("location", {})
+        location_id = get_or_create(
+            cur,
+            "public.dim_location",
+            {"city": loc.get("city"), "country": loc.get("country") or loc.get("region")},
+            "dim_location"
+        )
+
+        sector_list = o.get("sector") or []
+        sector_id = get_or_create_dim(cur, "sector", "sector", sector_list[0]) if sector_list else None
+
+        cur.execute("""
+            INSERT INTO public.fact_offer (
+                source, job_url, title, date_id, contract_id,
+                work_type_id, location_id, company_id, profile_id,
+                education_id, experience_id, sector_id
+            )
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            RETURNING offer_id
+        """, (
+            o.get("source_name") or "unknown",
+            o.get("job_url"),
+            o.get("titre"),
+            pub_date,
+            contract_id,
+            work_type_id,
+            location_id,
+            company_id,
+            profile_id,
+            education_id,
+            experience_id,
+            sector_id
+        ))
+        offer_id = cur.fetchone()[0]
+        counters["fact_offer"] += 1
+
+        for skill in o.get("hard_skills", []):
+            sid = get_or_create_skill(cur, skill, "hard")
+            cur.execute(
+                "INSERT INTO public.fact_offer_skill (offer_id, skill_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (offer_id, sid)
+            )
+            if cur.rowcount > 0:
+                counters["fact_offer_skill"] += 1
+
+        for skill in o.get("soft_skills", []):
+            sid = get_or_create_skill(cur, skill, "soft")
+            cur.execute(
+                "INSERT INTO public.fact_offer_skill (offer_id, skill_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (offer_id, sid)
+            )
+            if cur.rowcount > 0:
+                counters["fact_offer_skill"] += 1
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    print("\n✅ Import terminé avec succès.")
+    for k, v in counters.items():
+        print(f"{k} : {v} ligne(s) insérée(s)")
+
+if __name__ == "__main__":
+    enrich_db(r"C:\\Users\\houss\\Desktop\\DXC\\Job_market_research\\Postgres\\input\\corsignal1[1].json")
