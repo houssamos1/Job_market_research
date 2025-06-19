@@ -1,16 +1,20 @@
 FROM bitnami/spark:3.3.2
+
 USER root
 
-# 🔧 Fix DNS issue
-
-
-# 🧱 Installer les dépendances
+# Installer pip et les dépendances Python nécessaires
 RUN apt-get update \
-    && apt-get install -y python3-psycopg2 python3-boto3 \
+    && apt-get install -y python3-pip \
+    && pip3 install minio \
     && rm -rf /var/lib/apt/lists/*
 
 USER 1001
+
+# Copier le script de transformation
 COPY transform_job.py /opt/
 
+# Si tu utilises encore PostgreSQL plus tard
 ADD postgresql-42.7.3.jar /opt/bitnami/spark/jars/
+
+# Commande par défaut pour lancer le job
 CMD ["spark-submit", "/opt/transform_job.py"]
