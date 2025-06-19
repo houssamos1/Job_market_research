@@ -63,7 +63,7 @@ CREATE TABLE public.dim_calendar (
   month_number      INTEGER  NOT NULL,
   month_name        TEXT     NOT NULL,
   day               INTEGER  NOT NULL,
-  year_month        TEXT     NOT NULL,
+  year_month        INTEGER    NOT NULL,
   day_of_week       INTEGER  NOT NULL,
   week_of_year      INTEGER  NOT NULL,
   date_str          TEXT     NOT NULL

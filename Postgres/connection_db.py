@@ -20,11 +20,11 @@ print(f"  Database: {DB_NAME}\n")
 try:
     print("🔌 Tentative de connexion pg8000…")
     conn = pg8000.connect(
-        user="root",
-        password="123456",
-        host="localhost",
-        port="5430",
-        database="offers",
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT,
+        database=DB_NAME,
         
     )
     print("✅ Connexion pg8000 réussie\n")
