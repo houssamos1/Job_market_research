@@ -26,7 +26,7 @@ services:
     image: app_worker
     container_name: celery_container
 
-    command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
+    command: [ "celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E" ]
     depends_on:
       - redis
     user: celery_user
@@ -85,7 +85,7 @@ services:
 
     env_file:
       - .docker.env
-    command: ["minio","server",'--console-address',":9080","/data"]
+    command: [ "minio", "server", '--console-address', ":9080", "/data" ]
 
   postgres:
     image: postgres:latest
@@ -115,7 +115,20 @@ services:
     container_name: adminer
     restart: always
     ports:
-    - 8080:8080
+      - 8080:8080
+
+  spark_transform:
+    build:
+      context: ./spark_pipeline
+      dockerfile: Dockerfile.spark
+    container_name: spark_transform
+    depends_on:
+      - minio
+    volumes:
+      - ./spark_pipeline/transform_job.py:/opt/transform_job.py
+      - ./minio:/opt/minio # facultatif si besoin
+    env_file:
+      - .docker.env
 
 volumes:
   redis_data:
