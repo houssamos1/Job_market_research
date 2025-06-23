@@ -57,9 +57,6 @@ services:
       - redis
       - celery
   data_extraction:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: app_worker
     container_name: data_extraction_container
     volumes:
