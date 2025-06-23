@@ -1,9 +1,10 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, explode, to_date, lit
-from pyspark.sql.types import StringType
 import os
 
-print("🔥 Fichier mis à jour !")
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, explode, lit, to_date
+from pyspark.sql.types import StringType
+
+
 def main():
     spark = (
         SparkSession.builder.appName("JobTransform")
@@ -97,9 +98,9 @@ def main():
             pg_url, "public.fact_offer", properties=pg_props
         ).select("job_url")
         print("✅ PostgreSQL: Existing job_url loaded")
-    except:
+    except Exception as e:
         existing_jobs = spark.createDataFrame([], fact_pre.schema).select("job_url")
-        print("⚠️ Aucun job_url existant trouvé (peut-être première exécution)")
+        print(f" Aucun job_url existant trouvé : {e}")
 
     # Filtrage des nouvelles offres
     new_fact_pre = fact_pre.join(existing_jobs, on="job_url", how="left_anti")
@@ -138,3 +139,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    print("🔥 Fichier mis à jour !")
