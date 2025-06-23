@@ -26,7 +26,7 @@ services:
     image: app_worker
     container_name: celery_container
 
-    command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
+    command: ["sh", "/app/celery_app/start.sh"]
     depends_on:
       - redis
     user: celery_user
@@ -35,6 +35,7 @@ services:
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .docker.env
     environment:
@@ -53,13 +54,12 @@ services:
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
+    env_file:
+      - .docker.env
     depends_on:
       - redis
       - celery
   data_extraction:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: app_worker
     container_name: data_extraction_container
     volumes:
@@ -88,7 +88,7 @@ services:
 
     env_file:
       - .docker.env
-    command: ["minio","server",'--console-address',":9080","/data"]
+    command: [ "minio", "server", '--console-address', ":9080", "/data" ]
 
   postgres:
     image: postgres:latest
@@ -118,7 +118,19 @@ services:
     container_name: adminer
     restart: always
     ports:
-    - 8080:8080
+      - 8080:8080
+  spark_transform:
+    build:
+      context: ./spark_pipeline
+      dockerfile: Dockerfile.spark
+    container_name: spark_transform
+    command: [ "sleep", "infinity" ]
+    depends_on:
+      - minio
+    volumes:
+      - ./spark_pipeline/transform_job.py:/opt/transform_job.py
+    env_file:
+      - .docker.env
 
 volumes:
   redis_data:

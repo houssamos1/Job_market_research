@@ -31,8 +31,8 @@ def make_buckets(bucket_list: list = ["webscraping", "traitement"]):
 
 
 def save_to_minio(
+    file_path,
     bucket_name="webscraping",
-    file_path="/app/database/default.json",
     content_type="application/json",
 ):
     try:
@@ -44,11 +44,7 @@ def save_to_minio(
         print(f" Erreur : {object_name} → {err}")
 
 
-def read_from_minio(
-    bucket_name="webscraping",
-    object_name="default.json",
-    file_path="/app/data_extraction/scraping_output/test_download.json",
-):
+def read_from_minio(file_path, object_name, bucket_name="webscraping"):
     try:
         client = start_client()
         json_file = client.fget_object(bucket_name, object_name, file_path)
