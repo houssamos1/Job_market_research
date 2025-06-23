@@ -38,9 +38,7 @@ def configure_minio(spark):
     hadoop_conf.set("fs.s3a.access.key", os.getenv("MINIO_ROOT_USER"))
     hadoop_conf.set("fs.s3a.secret.key", os.getenv("MINIO_ROOT_PASSWORD"))
     hadoop_conf.set("fs.s3a.path.style.access", "true")
-    hadoop_conf.set(
-        "fs.s3a.connection.ssl.enabled", "false"
-    )  # Important si MinIO est sans SSL
+    hadoop_conf.set("fs.s3a.connection.ssl.enabled", "false")
 
 
 # -----------------------------------------------------------------------------------
@@ -209,7 +207,6 @@ def main():
     5. Upload vers MinIO
     """
     print("🚀 DÉMARRAGE DU SCRIPT SPARK")
-    spark = None
     try:
         spark = create_spark_session()
         configure_minio(spark)
