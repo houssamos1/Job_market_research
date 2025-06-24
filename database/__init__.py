@@ -53,6 +53,22 @@ def read_from_minio(file_path, object_name, bucket_name="webscraping"):
         print(f"Can't download object from object storage: {e}")
 
 
+def read_all_from_bucket(file_dir, object_name, bucket_name="webscraping") -> None:
+    try:
+        client = start_client()
+    except Exception as e:
+        print(f"Couldn't start client connection to Minio: {e}")
+    try:
+        file_names = client.list_objects(bucket_name=bucket_name)
+        for file in file_names:
+            file_path = os.path.join(file_dir, file)
+            client.fget_object(bucket_name, object_name, file_path)
+            print(f"Saved file {file} to path {file_path}")
+
+    except Exception:
+        print("Couldn't list the objects in Minio")
+
+
 def scraping_upload(scraping_dir="/app/data_extraction/scraping_output"):
     try:
         make_buckets()

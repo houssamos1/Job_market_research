@@ -10,7 +10,7 @@ from skillNer.general_params import SKILL_DB
 from skillNer.skill_extractor_class import SkillExtractor
 from spacy.matcher import PhraseMatcher
 
-from database import save_to_minio
+from database import read_all_from_bucket, save_to_minio
 
 
 def annotate_text(filename="offres_emploi_rekrute.json") -> list:
@@ -96,4 +96,5 @@ def extract_skills(filename="offres_emploi_rekrute.json") -> list:
     return ner_data
 
 
+read_all_from_bucket()
 extract_skills()

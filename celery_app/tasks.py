@@ -1,8 +1,12 @@
 import docker
-from celery import chord, group, shared_task
+from celery import Celery, chord, group, shared_task
 
 from data_extraction.Websites import MarocAnn, Rekrute, bayt, emploi
 from database import scraping_upload
+
+celery_app = Celery("celery_app")
+celery_app.config_from_object("celery_app.celeryconfig")
+celery_app.autodiscover_tasks()
 
 # 🚀 Tâches de scraping
 
