@@ -1,7 +1,6 @@
 name: Job_analytics_app
 
 services:
-
   redis:
     image: redis:latest
     container_name: redis
@@ -25,12 +24,10 @@ services:
       dockerfile: Dockerfile
     image: app_worker
     container_name: celery_container
-
-    command: "celery -A celery_app.tasks worker --loglevel=info -E & uvicorn celery_app.api:app --host 0.0.0.0 --port 8000"
-
+    command: ["celery", "-A", "celery_app.tasks","worker", "--loglevel=info","-E"]
     depends_on:
       - redis
-    user: celery_user
+
     volumes:
       - ./celery_app:/app/celery_app
       - ./data_extraction/Websites:/app/data_extraction/Websites
@@ -47,7 +44,8 @@ services:
     ports:
       - "5555:5555"
     command: ["celery", "-A", "celery_app.tasks", "flower", "--port=5555","--loglevel=info"]
-    user: celery_user
+    env_file:
+      - .docker.env
     volumes:
       - ./celery_app:/app/celery_app
       - ./data_extraction/Websites:/app/data_extraction/Websites
@@ -67,7 +65,7 @@ services:
     depends_on:
       - redis
       - celery
-    user: celery_user
+
     command: ["python", "/app/data_extraction/web_scrape.py"]
     env_file:
       - .docker.env
@@ -116,6 +114,18 @@ services:
     restart: always
     ports:
     - 8080:8080
+  spark_transform:
+    build:
+      context: ./spark_pipeline
+      dockerfile: Dockerfile.spark
+    container_name: spark_transform
+    depends_on:
+      - minio
+    volumes:
+      - ./spark_pipeline/transform_job.py:/opt/transform_job.py
+
+    env_file:
+      - .docker.env
 
 volumes:
   redis_data:
