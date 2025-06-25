@@ -130,8 +130,30 @@ services:
     volumes:
       - ./spark_pipeline/transform_job.py:/opt/transform_job.py
       - ./minio:/opt/minio # facultatif si besoin
+      - ./spark_pipeline/insert_to_postgres.py:/opt/insert_to_postgres.py
     env_file:
       - .docker.env
+
+  
+  insert_postgres:
+    build:
+      context: ./spark_pipeline
+      dockerfile: dockerfile.insert
+    container_name: insert_postgres
+    depends_on:
+      - minio
+      - postgres
+    volumes:
+      - ./spark_pipeline/insert_to_postgres.py:/opt/insert_to_postgres.py
+    env_file:
+      - .docker.env
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=offers
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    
 
   superset:
     build:

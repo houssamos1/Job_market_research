@@ -1,0 +1,17 @@
+FROM python:3.10-slim
+
+# Installation des dépendances
+RUN apt-get update && apt-get install -y python3-pip && pip install --no-cache-dir \
+    pg8000 \
+    python-dotenv \
+    pandas \
+    minio
+
+# Création du répertoire
+WORKDIR /opt/
+
+# Ajout du script Python
+COPY insert_to_postgres.py /opt/insert_to_postgres.py
+
+# Commande par défaut
+CMD ["python", "insert_to_postgres.py"]
