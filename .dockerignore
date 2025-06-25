@@ -10,7 +10,7 @@ data_extraction/scraping_output/*.json
 data_extraction/Websites/log/*.log
 data_extraction/Websites/chromedriver-win64/
 *.exe
-
+ai_models
 .pytest_cache
 .ruff_cache
 
@@ -31,4 +31,3 @@ logs
 .git
 .vscode
 *.log
-
