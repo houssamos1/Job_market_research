@@ -26,7 +26,8 @@ services:
     image: app_worker
     container_name: celery_container
 
-    command: [ "celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E" ]
+    command: "celery -A celery_app.tasks worker --loglevel=info -E & uvicorn celery_app.api:app --host 0.0.0.0 --port 8000"
+
     depends_on:
       - redis
     user: celery_user
@@ -41,12 +42,11 @@ services:
       - PYTHONPATH=/app
 
   flower:
-
     image: app_worker
     container_name: flower_container
     ports:
       - "5555:5555"
-    command: [ "celery", "-A", "celery_app.tasks", "flower", "--port=5555", "--loglevel=info" ]
+    command: ["celery", "-A", "celery_app.tasks", "flower", "--port=5555","--loglevel=info"]
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
@@ -57,9 +57,6 @@ services:
       - redis
       - celery
   data_extraction:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: app_worker
     container_name: data_extraction_container
     volumes:
@@ -71,7 +68,7 @@ services:
       - redis
       - celery
     user: celery_user
-    command: [ "python", "/app/data_extraction/web_scrape.py" ]
+    command: ["python", "/app/data_extraction/web_scrape.py"]
     env_file:
       - .docker.env
     environment:
@@ -88,13 +85,13 @@ services:
 
     env_file:
       - .docker.env
-    command: [ "minio", "server", '--console-address', ":9080", "/data" ]
+    command: ["minio","server",'--console-address',":9080","/data"]
 
   postgres:
     image: postgres:latest
 
     ports:
-      - "5430:5432"
+      - "5432:5432"
 
     container_name: postgres
 
@@ -109,7 +106,7 @@ services:
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -118,7 +115,7 @@ services:
     container_name: adminer
     restart: always
     ports:
-      - 8080:8080
+
 
   spark_transform:
     build:
@@ -133,6 +130,7 @@ services:
       - ./spark_pipeline/insert_to_postgres.py:/opt/insert_to_postgres.py
     env_file:
       - .docker.env
+
 
   
   insert_postgres:
@@ -158,7 +156,7 @@ services:
   superset:
     build:
       context: .
-      dockerfile: supersett/Dockerfile.superset # <-- ton chemin exact
+      dockerfile: supersett/Dockerfile.superset 
     container_name: superset
     ports:
       - "8088:8088"
@@ -185,5 +183,6 @@ volumes:
   output:
   postgres_data:
   superset_home:
+
 
 

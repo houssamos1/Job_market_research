@@ -1,10 +1,11 @@
 import os
 import uuid
 from datetime import datetime
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, split, trim, to_date
-from pyspark.sql.types import StringType
+
 from minio import Minio
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, split, to_date, trim
+from pyspark.sql.types import StringType
 
 # -----------------------------------------------------------------------------------
 # INITIALISATION
@@ -37,9 +38,7 @@ def configure_minio(spark):
     hadoop_conf.set("fs.s3a.access.key", os.getenv("MINIO_ROOT_USER"))
     hadoop_conf.set("fs.s3a.secret.key", os.getenv("MINIO_ROOT_PASSWORD"))
     hadoop_conf.set("fs.s3a.path.style.access", "true")
-    hadoop_conf.set(
-        "fs.s3a.connection.ssl.enabled", "false"
-    )  # Important si MinIO est sans SSL
+    hadoop_conf.set("fs.s3a.connection.ssl.enabled", "false")
 
 
 # -----------------------------------------------------------------------------------
@@ -208,7 +207,6 @@ def main():
     5. Upload vers MinIO
     """
     print("🚀 DÉMARRAGE DU SCRIPT SPARK")
-    spark = None
     try:
         spark = create_spark_session()
         configure_minio(spark)
@@ -234,3 +232,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    print("🔥 Fichier mis à jour !")
