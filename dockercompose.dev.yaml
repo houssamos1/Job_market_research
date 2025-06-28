@@ -26,7 +26,8 @@ services:
     image: app_worker
     container_name: celery_container
 
-    command: ["sh", "/app/celery_app/start.sh"]
+    command: "celery -A celery_app.tasks worker --loglevel=info -E & uvicorn celery_app.api:app --host 0.0.0.0 --port 8000"
+
     depends_on:
       - redis
     user: celery_user
@@ -35,27 +36,23 @@ services:
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
-      - /var/run/docker.sock:/var/run/docker.sock
     env_file:
       - .docker.env
     environment:
       - PYTHONPATH=/app
 
   flower:
-
     image: app_worker
     container_name: flower_container
     ports:
       - "5555:5555"
-    command: [ "celery", "-A", "celery_app.tasks", "flower", "--port=5555", "--loglevel=info" ]
+    command: ["celery", "-A", "celery_app.tasks", "flower", "--port=5555","--loglevel=info"]
     user: celery_user
     volumes:
       - ./celery_app:/app/celery_app
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log
-    env_file:
-      - .docker.env
     depends_on:
       - redis
       - celery
@@ -71,7 +68,7 @@ services:
       - redis
       - celery
     user: celery_user
-    command: [ "python", "/app/data_extraction/web_scrape.py" ]
+    command: ["python", "/app/data_extraction/web_scrape.py"]
     env_file:
       - .docker.env
     environment:
@@ -88,13 +85,13 @@ services:
 
     env_file:
       - .docker.env
-    command: [ "minio", "server", '--console-address', ":9080", "/data" ]
+    command: ["minio","server",'--console-address',":9080","/data"]
 
   postgres:
     image: postgres:latest
 
     ports:
-      - "5430:5432"
+      - "5432:5432"
 
     container_name: postgres
 
@@ -109,7 +106,7 @@ services:
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     restart: always
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -118,19 +115,7 @@ services:
     container_name: adminer
     restart: always
     ports:
-      - 8080:8080
-  spark_transform:
-    build:
-      context: ./spark_pipeline
-      dockerfile: Dockerfile.spark
-    container_name: spark_transform
-    command: [ "sleep", "infinity" ]
-    depends_on:
-      - minio
-    volumes:
-      - ./spark_pipeline/transform_job.py:/opt/transform_job.py
-    env_file:
-      - .docker.env
+    - 8080:8080
 
 volumes:
   redis_data:
