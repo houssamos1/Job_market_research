@@ -115,7 +115,66 @@ services:
     container_name: adminer
     restart: always
     ports:
-    - 8080:8080
+
+
+  spark_transform:
+    build:
+      context: ./spark_pipeline
+      dockerfile: Dockerfile.spark
+    container_name: spark_transform
+    depends_on:
+      - minio
+    volumes:
+      - ./spark_pipeline/transform_job.py:/opt/transform_job.py
+      - ./minio:/opt/minio # facultatif si besoin
+      - ./spark_pipeline/insert_to_postgres.py:/opt/insert_to_postgres.py
+    env_file:
+      - .docker.env
+
+
+  
+  insert_postgres:
+    build:
+      context: ./spark_pipeline
+      dockerfile: dockerfile.insert
+    container_name: insert_postgres
+    depends_on:
+      - minio
+      - postgres
+    volumes:
+      - ./spark_pipeline/insert_to_postgres.py:/opt/insert_to_postgres.py
+    env_file:
+      - .docker.env
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=offers
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    
+
+  superset:
+    build:
+      context: .
+      dockerfile: supersett/Dockerfile.superset 
+    container_name: superset
+    ports:
+      - "8088:8088"
+    environment:
+      SUPERSET_SECRET_KEY: 'a_secure_random_key'
+    volumes:
+      - superset_home:/app/superset_home
+    depends_on:
+      - postgres
+    command: >
+      /bin/bash -c " superset db upgrade && superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@superset.com --password admin && superset init && superset run -h 0.0.0.0 -p 8088"
+
+  pgclient:
+    image: postgres:latest
+    container_name: pgclient
+    command: sleep infinity
+    depends_on:
+      - postgres
 
 volumes:
   redis_data:
@@ -123,3 +182,7 @@ volumes:
   logs:
   output:
   postgres_data:
+  superset_home:
+
+
+
