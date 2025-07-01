@@ -76,6 +76,7 @@ RUN chown celery_user:celery_group /home/celery_user/.local/share/undetected_chr
 
 # 5. Copier tout le code de l’application (celery_app et data_extraction seront écrasés par les volumes Compose)
 COPY --chown=celery_user:celery_group . /app
+RUN chown -R celery_user:celery_group /app/data_extraction/scraping_output
 
 # 6. Définir l’environnement Python final (virtualenv 3.10)
 ENV PATH="/app/.venv/bin:$PATH" \

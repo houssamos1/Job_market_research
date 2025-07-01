@@ -73,8 +73,8 @@ def spark_cleaning():
     client = docker.from_env()
     try:
         container = client.containers.run(
-            image="spark_transform",
-            name="spark_transform_job",
+            image="job_analytics_app-spark_transform",
+            name="spark_transform",
             command="spark-submit /opt/transform_job.py",  # adapte si différent
             volumes={
                 "/var/run/docker.sock": {"bind": "/var/run/docker.sock", "mode": "rw"},
@@ -100,4 +100,4 @@ def scraping_workflow():
     chord(scraping_tasks)(scrape_upload.s())
     print("Scraping terminé. Lancement du nettoyage Spark.")
     result = spark_cleaning.delay()
-    return result.get()
+    return result
