@@ -10,11 +10,9 @@ RUN apt-get update \
 
 USER 1001
 
-# Copier le script de transformation
 COPY transform_job.py /opt/
+COPY insert_to_postgres.py /opt/
 
-# Si tu utilises encore PostgreSQL plus tard
 ADD postgresql-42.7.3.jar /opt/bitnami/spark/jars/
 
-# Commande par défaut pour lancer le job
 CMD ["spark-submit", "/opt/transform_job.py"]
