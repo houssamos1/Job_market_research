@@ -134,3 +134,4 @@ volumes:
   logs:
   output:
   postgres_data:
+  superset_home:
