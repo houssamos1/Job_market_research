@@ -1,6 +1,6 @@
 import json
-import logging
-import os
+import logging  # noqa
+import os  # noqa
 
 import undetected_chromedriver as uc
 from jsonschema import ValidationError, validate
@@ -11,7 +11,6 @@ current_dir = os.path.dirname(current_path)
 
 
 def init_driver():
-
     """
     Initialise une instance de WebDriver Selenium pour la navigation web.
 
@@ -23,7 +22,7 @@ def init_driver():
     Returns:
         uc.Chrome: Une instance de WebDriver configurée et prête à l'usage.
     """
-    
+
     # Creation et configuration du Driver, pour pointer sur le driver changez le chemin executable_path
 
     # Creation et configuration du Driver, pour pointer sur le driver changez le chemin chd
@@ -79,7 +78,7 @@ def init_driver():
 
 def highlight(
     element, effect_time=0.1, color="yellow", border="2px solid red", active=True
-): 
+):
     """
     Met en surbrillance un élément HTML sur une page web avec des styles personnalisables.
 
@@ -95,7 +94,7 @@ def highlight(
     Returns:
         None
     """
-    
+
     if active:
         driver = element._parent
         original_style = element.get_attribute("style")
@@ -168,44 +167,42 @@ def save_json(data: list, filename="default.json", output_directory="scraping_ou
     """
     Sauvegarde une liste de données JSON dans un fichier, en fusionnant avec les données existantes.
 
-    Stocke les données dans un fichier et un répertoire spécifiés, en combinant avec le contenu existant.
-
     Args:
         data (list): La liste des données d'offres à sauvegarder.
-        filename (str, optional): Nom du fichier JSON de sortie. Par défaut "default.json".
-        output_directory (str, optional): Répertoire pour sauvegarder le fichier. Par défaut "scraping_output".
-
-    Returns:
-        None
+        filename (str, optional): Nom du fichier JSON de sortie.
+        output_directory (str, optional): Répertoire pour sauvegarder le fichier.
     """
-    # --- Sauvegarde locale en JSON (pour vérification) --
 
-    # Get the absolute path of the current script
     current_path = os.path.abspath(__file__)
     current_dir = os.path.dirname(current_path)
     parent_dir = os.path.dirname(current_dir)
 
-    # Constructing the output path
     output_path = os.path.join(parent_dir, output_directory)
     os.makedirs(output_path, exist_ok=True)
 
-    # Change the current working directory
     os.chdir(output_path)
 
     existing_data = []
-    try:
-        if os.path.exists(output_path):
+    if os.path.exists(filename):
+        try:
             with open(filename, "r", encoding="utf-8") as js_file:
                 existing_data = json.load(js_file)
-    except FileNotFoundError:
-        logging.error("File not found, creating new one")
-        json.dump
+        except json.JSONDecodeError:
+            logging.warning(
+                f"{filename} exists but contains invalid JSON. Overwriting."
+            )
+
+    merged_data = existing_data + data
+    logging.info(f"Saving {len(merged_data)} jobs to {filename}, {len(data)} new jobs")
+
     with open(filename, "w", encoding="utf-8") as js_file:
-        merged_data = existing_data + data
-        logging.info(
-            f"Saving {len(merged_data)} jobs to {filename}, {len(data)} new jobs"
-        )
         json.dump(merged_data, js_file, ensure_ascii=False, indent=4)
+
+    # ✅ Ensure file is writable by container user on future runs
+    try:
+        os.chmod(filename, 0o666)  # rw-rw-rw-
+    except PermissionError:
+        logging.warning(f"Could not change permissions on {filename}")
 
 
 def validate_json(
@@ -214,31 +211,31 @@ def validate_json(
         os.path.dirname(os.path.abspath(__file__)), "Job_schema.json"
     ),
 ):
-   """
-   Valide des données JSON par rapport à un schéma spécifié.
-
-    Vérifie si les données d'entrée respectent le schéma chargé à partir d'un fichier.
-
-    Args:
-        data: Les données JSON à valider.
-        schema_path (str, optional): Chemin vers le fichier de schéma. Par défaut "Job_schema.json" dans le répertoire du script.
-
-    Returns:
-        None
     """
-   
-   with open(schema_path) as f:
+    Valide des données JSON par rapport à un schéma spécifié.
+
+     Vérifie si les données d'entrée respectent le schéma chargé à partir d'un fichier.
+
+     Args:
+         data: Les données JSON à valider.
+         schema_path (str, optional): Chemin vers le fichier de schéma. Par défaut "Job_schema.json" dans le répertoire du script.
+
+     Returns:
+         None
+    """
+
+    with open(schema_path) as f:
         schema = json.load(f)
-   try:
+    try:
         validate(data, schema)
-   except ValidationError as e:
+    except ValidationError as e:
         logging.error(f"Validation error: {e.message}")
         return e
 
 
 def check_duplicate(data, job_url):
     """Vérifie si une URL d'offre existe déjà dans les données pour éviter les doublons."""
-    
+
     # Check if the job URL already exists in the data
     for job in data[:][:]:
         if job.get("job_url") == job_url:
