@@ -53,7 +53,11 @@ def read_from_minio(file_path, object_name, bucket_name="webscraping"):
         print(f"Can't download object from object storage: {e}")
 
 
-def read_all_from_bucket(file_dir, object_name, bucket_name="webscraping") -> None:
+def read_all_from_bucket(
+    object_name,
+    file_dir="data_extraction/scraping_output",
+    bucket_name="webscraping",
+) -> None:
     try:
         client = start_client()
     except Exception as e:

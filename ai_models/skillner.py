@@ -10,10 +10,10 @@ from skillNer.general_params import SKILL_DB
 from skillNer.skill_extractor_class import SkillExtractor
 from spacy.matcher import PhraseMatcher
 
-from database import read_all_from_bucket, save_to_minio
+from database import save_to_minio
 
 
-def annotate_text(filename="offres_emploi_rekrute.json") -> list:
+def annotate_text(filename) -> list:
     """This functions uses spacy's NLP and  skillner's skill extractor and a custom skill database to annotate text.
 
     This text can displayed using skillextractor's describe and display methods.
@@ -53,7 +53,7 @@ def annotate_text(filename="offres_emploi_rekrute.json") -> list:
     return annotations
 
 
-def extract_skills(filename="offres_emploi_rekrute.json") -> list:
+def extract_skills(filename) -> list:
     """Given the filename of a json file, this function will do NER on the skills present in the file's text.
 
     Parameters
@@ -69,26 +69,15 @@ def extract_skills(filename="offres_emploi_rekrute.json") -> list:
         job_offer = annotations[i]
         skills = {}
 
-        print(f"---Job offer n°{i + 1}---")
         for full_match in job_offer["results"]["full_matches"]:
             key = full_match["skill_id"]
-            """print(
-                f"Full match skill {key}---->",
-                SKILL_DB[key]["skill_name"],
-                "//",
-                SKILL_DB[key]["skill_type"],
-            )"""
             skills[SKILL_DB[key]["skill_name"]] = SKILL_DB[key]["skill_type"]
+
         for ngram_score in job_offer["results"]["ngram_scored"]:
             key = ngram_score["skill_id"]
-            """print(
-                f"Approximate match skill {key}---->",
-                SKILL_DB[key]["skill_name"],
-                "//",
-                SKILL_DB[key]["skill_type"],
-            )"""
             skills[SKILL_DB[key]["skill_name"]] = SKILL_DB[key]["skill_type"]
         ner_data.append(skills)
+
     ner_filename = "NER_" + filename
     with open(ner_filename, "w", encoding="utf-8") as js_file:
         json.dump(ner_data, js_file, ensure_ascii=False, indent=4)
@@ -96,5 +85,11 @@ def extract_skills(filename="offres_emploi_rekrute.json") -> list:
     return ner_data
 
 
-read_all_from_bucket()
-extract_skills()
+def skillner_extract():
+    filenames = os.listdir("data_extraction/scraping_output")
+    try:
+        for filename in filenames:
+            print(f"Extracting skills from: {filename}")
+            extract_skills(filename=filename)
+    except Exception as e:
+        print(f"Couldn't extract skills from json: {e}")

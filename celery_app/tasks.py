@@ -1,6 +1,7 @@
 import docker
 from celery import Celery, chord, group, shared_task
 
+from ai_models.skillner import skillner_extract
 from data_extraction.Websites import MarocAnn, Rekrute, bayt, emploi
 from database import scraping_upload
 
@@ -52,6 +53,13 @@ def emploi_task(self):
 
 
 # 📤 Tâche d'upload
+@shared_task(name="extract_skills")
+def extract_skills():
+    try:
+        skillner_extract()
+        print("Skillner skill extraction successfull")
+    except Exception as e:
+        print(f"Couldn't extract skills: {e}")
 
 
 @shared_task(name="scrape_upload")
