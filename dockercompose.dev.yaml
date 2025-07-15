@@ -30,6 +30,7 @@ services:
 
     volumes:
       - ./celery_app:/app/celery_app
+      - ./skillner:/app/skillner
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
       - logs:/var/log

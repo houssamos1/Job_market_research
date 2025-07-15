@@ -22,6 +22,8 @@ RUN python -m venv .venv && . .venv/bin/activate && python -m ensurepip --upgrad
 COPY pyproject.toml uv.lock ./
 RUN uv sync
 
+RUN python -m spacy download en_core_web_lg
+
 # -----------------------------------------------------------
 # Stage 2: Image finale pour Celery (avec Chrome + Chromedriver)
 # -----------------------------------------------------------
