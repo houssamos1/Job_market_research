@@ -1,8 +1,9 @@
 import docker
-from celery import Celery, chord, group, shared_task
+from celery import Celery, chain, group, shared_task
 
 from data_extraction.Websites import MarocAnn, Rekrute, bayt, emploi
 from database import scraping_upload
+from skillner.skillner import skillner_extract
 
 celery_app = Celery("celery_app")
 celery_app.config_from_object("celery_app.celeryconfig")
@@ -52,20 +53,24 @@ def emploi_task(self):
 
 
 # 📤 Tâche d'upload
+@shared_task(name="extract_skills")
+def extract_skills():
+    try:
+        skillner_extract()
+        print("Skillner skill extraction successfull")
+    except Exception as e:
+        print(f"Couldn't extract skills: {e}")
 
 
 @shared_task(name="scrape_upload")
-def scrape_upload(results):
+def scrape_upload():
     try:
-        print(f"Upload des résultats du scraping : {results}")
+        print("Upload des résultats du scraping")
         scraping_upload()
         return "Upload terminé"
     except Exception as e:
         print(f"Exception lors de l'upload : {e}")
         return "Erreur pendant l'upload"
-
-
-# 🧼 Tâche de lancement de Spark après scraping
 
 
 @shared_task(name="spark_cleaning")
@@ -89,15 +94,8 @@ def spark_cleaning():
         return f"Erreur lors du lancement du Spark job : {str(e)}"
 
 
-# 🔁 Workflow principal : scraping → upload → spark
-
-
 @shared_task(name="scraping_workflow")
 def scraping_workflow():
-    scraping_tasks = group(
-        emploi_task.s(), rekrute_task.s(), bayt_task.s(), marocann_task.s()
-    )
-    chord(scraping_tasks)(scrape_upload.s())
-    print("Scraping terminé. Lancement du nettoyage Spark.")
-    result = spark_cleaning.delay()
-    return result
+    scraping_tasks = group(emploi_task.s(), rekrute_task.s(), marocann_task.s())
+    workflow = chain(scraping_tasks | extract_skills.si() | scrape_upload.si())()
+    return workflow
