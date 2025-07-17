@@ -11,12 +11,6 @@ DB_NAME = os.getenv("POSTGRES_DB", "offers")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5430")
 
-print("🔍 Paramètres de connexion pg8000 :")
-print(f"  Host    : {DB_HOST}")
-print(f"  Port    : {DB_PORT}")
-print(f"  User    : {DB_USER}")
-print(f"  Database: {DB_NAME}\n")
-
 try:
     print("🔌 Tentative de connexion pg8000…")
     conn = pg8000.connect(
