@@ -1,4 +1,3 @@
--- Schema.sql généré à partir du diagramme Mermaid
 
 -- Table de dimension date
 DROP TABLE IF EXISTS dim_date CASCADE;
