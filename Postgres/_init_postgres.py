@@ -4,6 +4,8 @@ from datetime import datetime
 import json
 import logging
 
+from __init__ import *
+
 # Configuration du log
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -203,3 +205,72 @@ def load_offers_from_file(filepath):
             close(conn)
 
     logging.info(f"Import terminé ✅ — {inserted} insérées, {skipped} ignorées, {errors} erreurs.")
+
+
+
+#test 
+
+
+def load_offers(offers):
+    """
+    Insère une liste d'offres (déjà parsées) dans PostgreSQL.
+    """
+    inserted, skipped, errors = 0, 0, 0
+    conn = None
+
+    try:
+        conn = connect()
+        for i, offer in enumerate(offers, 1):
+            try:
+                # Fallback des champs optionnels
+                offer.setdefault("date_publication", offer.get("publication_date") or offer.get("date"))
+                offer.setdefault("source", "Inconnue")
+                offer.setdefault("contrat", "Non spécifié")
+                offer.setdefault("titre", offer.get("title") or "Non spécifié")
+                offer.setdefault("compagnie", "Non spécifiée")
+                offer.setdefault("niveau_etudes", "Non spécifié")
+                offer.setdefault("niveau_experience", None)
+
+                res = insert_offer(conn, offer)
+                if res == -1:
+                    skipped += 1
+                    logging.info(f"[{i}] Offre déjà existante: {offer.get('job_url')}")
+                else:
+                    inserted += 1
+                    logging.info(f"[{i}] Offre insérée ID={res}")
+            except Exception as e:
+                errors += 1
+                logging.error(f"[{i}] Erreur insertion offre: {e}")
+                conn.rollback()
+    except Exception as e:
+        logging.error(f"Erreur connexion ou transaction: {e}")
+    finally:
+        if conn:
+            close(conn)
+
+    logging.info(f"✅ Chargement terminé — {inserted} insérées, {skipped} ignorées, {errors} erreurs.")
+
+
+
+def load_offers_from_minio(bucket_name="traitement"):
+    """
+    Charge toutes les offres JSON depuis un bucket MinIO (en mémoire),
+    puis les insère dans PostgreSQL via load_offers.
+    """
+    logging.info(f"📦 Connexion à MinIO et lecture du bucket : {bucket_name}")
+
+    try:
+        offers = read_all_from_bucket_memory(bucket_name=bucket_name)
+
+        if not offers:
+            logging.warning("⚠️ Aucune offre trouvée dans le bucket MinIO.")
+            return
+
+        logging.info(f"📄 {len(offers)} offres récupérées depuis MinIO")
+        
+        # Ici on appelle ta fonction d'insertion dans PostgreSQL
+        load_offers(offers)
+        logging.info("✅ Chargement des offres dans PostgreSQL terminé.")
+
+    except Exception as e:
+        logging.error(f"❌ Erreur lors du chargement depuis MinIO : {e}")
