@@ -10,13 +10,24 @@ data_extraction/scraping_output/*.json
 data_extraction/Websites/log/*.log
 data_extraction/Websites/chromedriver-win64/
 *.exe
-
+ai_models
 .pytest_cache
 .ruff_cache
 
 
 *.log
 
-*.json
+
 *.csv
 .env
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+data_extraction/Websites/log
+output
+logs
+.git
+.vscode
+*.log

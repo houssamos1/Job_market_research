@@ -1,0 +1,18 @@
+FROM bitnami/spark:3.3.2
+
+USER root
+
+# Installer pip et les dépendances Python nécessaires
+RUN apt-get update \
+    && apt-get install -y python3-pip \
+    && pip3 install minio \
+    && rm -rf /var/lib/apt/lists/*
+
+USER 1001
+
+COPY transform_job.py /opt/
+COPY insert_to_postgres.py /opt/
+
+ADD postgresql-42.7.3.jar /opt/bitnami/spark/jars/
+
+CMD ["spark-submit", "/opt/transform_job.py"]

@@ -1,6 +1,6 @@
 name: Job_analytics_app
-services:
 
+services:
   redis:
     image: redis:latest
     container_name: redis
@@ -24,62 +24,165 @@ services:
       dockerfile: Dockerfile
     image: app_worker
     container_name: celery_container
-    command: ["celery", "-A", "celery_app.tasks", "worker", "--loglevel=info", "-E"]
+    command: ["celery", "-A", "celery_app.tasks","worker", "--loglevel=info","-E"]
     depends_on:
       - redis
-    user: celery_user
+    user: root
+
     volumes:
       - ./celery_app:/app/celery_app
+      - ./skillner:/app/skillner
       - ./data_extraction/Websites:/app/data_extraction/Websites
+      - ./spark_pipeline:/app/spark_pipeline
       - output:/app/data_extraction/scraping_output
-      - logs:/app/data_extraction/Websites/log
-
+      - logs:/var/log
+      #These two last volumes are for running docker commands inside the container
+      - /usr/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .docker.env
     environment:
-    - PYTHONPATH=/app
-    - CHROME_BIN=/opt/chrome/chrome
-    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
-
-
+      - PYTHONPATH=/app
 
   flower:
-
-    image: app_worker
+    build:
+      context: ./celery_app
+      dockerfile: Dockerfile.flower
     container_name: flower_container
     ports:
       - "5555:5555"
     command: ["celery", "-A", "celery_app.tasks", "flower", "--port=5555","--loglevel=info"]
-    user: celery_user
+    env_file:
+      - .docker.env
     volumes:
       - ./celery_app:/app/celery_app
-      - ./data_extraction/Websites:/app/data_extraction/Websites
-      - output:/app/data_extraction/scraping_output
-      - logs:/app/data_extraction/Websites/log
     depends_on:
       - redis
       - celery
   data_extraction:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: app_worker
     container_name: data_extraction_container
     volumes:
       - ./celery_app:/app/celery_app
       - ./data_extraction/Websites:/app/data_extraction/Websites
       - output:/app/data_extraction/scraping_output
-      - logs:/app/data_extraction/Websites/log
-
+      - logs:/var/log
     depends_on:
       - redis
       - celery
-    user: celery_user
+
     command: ["python", "/app/data_extraction/web_scrape.py"]
+    env_file:
+      - .docker.env
     environment:
-    - PYTHONPATH=/app
-    - CHROME_BIN=/opt/chrome/chrome
-    - CHROME_DRIVER_DIR=/home/celery_user/.local/share/undetected_chromedriver
+      - PYTHONPATH=/app
+  minio:
+    image: minio/minio
+
+    container_name: minio
+    volumes:
+      - minio_data:/data
+    ports:
+      - 9000:9000
+      - 9080:9080
+
+    env_file:
+      - .docker.env
+    command: ["minio","server",'--console-address',":9080","/data"]
+
+  postgres:
+    image: postgres:latest
+
+    ports:
+      - "5432:5432"
+
+    container_name: postgres
+
+    env_file:
+      - .docker.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+    - 8080:8080
+
+  spark_transform:
+    build:
+      context: ./spark_pipeline
+      dockerfile: Dockerfile.spark
+    container_name: spark_transform
+    depends_on:
+      - minio
+    volumes:
+      - ./spark_pipeline/transform_job.py:/opt/transform_job.py
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    env_file:
+      - .docker.env
+
+
+  pipeline_loader:
+   build:
+    context: ./postgres
+    dockerfile: Dockerfile.pipeline
+   container_name: pipeline_loader
+
+   volumes:
+    - ./postgres:/app/postgres
+   env_file:
+    - .docker.env
+   depends_on:
+    - postgres
+    - minio
+   restart: "no"
+
+  enrechissement_processor:
+    build:
+      context: .
+      dockerfile: enrechissement_process/Dockerfile.enrechissement
+    container_name: enrechissement_processor
+    depends_on:
+      - minio
+    volumes:
+      - .:/app
+    env_file:
+      - .docker.env
+    environment:
+      - PYTHONPATH=/app
+
+  
+  skillner:
+    build:
+      context: ./skillner
+      dockerfile: Dockerfile.skillner
+    container_name: skillner_container
+    env_file:
+      - .docker.env
+    volumes:
+      - ./skillner:/app
+    depends_on:
+      - minio
+    restart: "no"
 
 volumes:
   redis_data:
+  minio_data:
   logs:
   output:
+  postgres_data:
+  superset_home:
