@@ -1,10 +1,6 @@
 print("--- superset_config.py loaded successfully ---")
 
-# CACHE_CONFIG = {
-#    'CACHE_TYPE': 'null'
-# }
-CACHE_CONFIG = {"CACHE_TYPE": "SimpleCache", "CACHE_DEFAULT_TIMEOUT": 300}
-
+CACHE_CONFIG = {"CACHE_TYPE": "null"}
 
 FEATURE_FLAGS = {
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
@@ -15,6 +11,7 @@ FEATURE_FLAGS = {
     "ENABLE_ECHARTS": True,
     "EMBEDDED_SUPERSET": True,
 }
+
 SECRET_KEY = "testkey"
 EXTRA_CATEGORICAL_COLOR_SCHEMES = [
     {
