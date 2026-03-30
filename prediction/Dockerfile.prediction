@@ -1,0 +1,26 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 📦 Installer les dépendances système pour Prophet et psycopg2
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    libgomp1 \
+    libpq-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# 📦 Installer les librairies Python nécessaires
+RUN pip install --upgrade pip \
+    && pip install pandas prophet psycopg2-binary
+
+# 📝 Copier requirements.txt et installer le reste des dépendances si besoin
+COPY requirements_prediction.txt .
+RUN pip install --no-cache-dir -r /app/requirements_prediction.txt
+
+# 📁 Copier ton code dans le conteneur
+COPY . .
+
+# ▶️ Commande de lancement
+CMD ["python", "/app/prediction/manage_tables.py"]
